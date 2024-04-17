@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	// コマンドライン引数を解析する
+	// Get command line arguments
 	var (
 		repo        = flag.String("repo", "", "Repository name")
 		owner       = flag.String("owner", "", "Repository owner")
@@ -26,13 +26,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Logger の初期設定
+	// Initialize a logger
 	logger := log.New(
 		os.Stdout, "[alert-menta main] ",
 		log.Ldate|log.Ltime|log.Llongfile|log.Lmsgprefix,
 	)
 
-	// OAuth2トークンを使用してGitHubクライアントを作成
+	// Create GitHub client with OAuth2 token
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: *token},
@@ -41,7 +41,7 @@ func main() {
 
 	client := github.NewClient(tc)
 
-	// 指定した GitHub Issues とそこについたコメントを取得
+	// Retrieve specified GitHub Issues and their comments
 	issue, _, _ := client.Issues.Get(ctx, *owner, *repo, *issueNumber)
 	comments, res, err := client.Issues.ListComments(ctx, *owner, *repo, *issueNumber, &github.IssueListCommentsOptions{Direction: "asc"})
 
@@ -53,7 +53,7 @@ func main() {
 		logger.Printf("%s: %s", *v.User.Login, *v.Body)
 	}
 
-	// Issue にコメントを投稿
+	// Post a comment on the Issue
 	comment := &github.IssueComment{Body: github.String(*commentBody)}
 	_, _, err = client.Issues.CreateComment(ctx, *owner, *repo, *issueNumber, comment)
 	if err != nil {
