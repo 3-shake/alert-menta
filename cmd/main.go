@@ -1,13 +1,11 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"log"
 	"os"
 
-	"github.com/google/go-github/github"
-	"golang.org/x/oauth2"
+	"github.com/3-shake/alert-menta/internal/github"
 )
 
 func main() {
@@ -32,30 +30,22 @@ func main() {
 		log.Ldate|log.Ltime|log.Llongfile|log.Lmsgprefix,
 	)
 
-	// Create GitHub client with OAuth2 token
-	ctx := context.Background()
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: *token},
-	)
-	tc := oauth2.NewClient(ctx, ts)
+	// Create GitHub Issues instance
+	issue := github.NewIssue(*owner, *repo, *issueNumber, *token)
 
-	client := github.NewClient(tc)
+	// Get Issue's info
+	title, _ := issue.GetTitle()
+	body, _ := issue.GetBody()
+	logger.Println("Title:", *title)
+	logger.Println("Body:", *body)
 
-	// Retrieve specified GitHub Issues and their comments
-	issue, _, _ := client.Issues.Get(ctx, *owner, *repo, *issueNumber)
-	comments, res, err := client.Issues.ListComments(ctx, *owner, *repo, *issueNumber, &github.IssueListCommentsOptions{Direction: "asc"})
-
-	logger.Println("Title:", issue.GetTitle())
-	logger.Println("Body:", issue.GetBody())
-	logger.Println("A number of comments:", issue.GetComments())
-	logger.Println(len(comments), res, err)
+	comments, _ := issue.GetComments()
 	for _, v := range comments {
 		logger.Printf("%s: %s", *v.User.Login, *v.Body)
 	}
 
 	// Post a comment on the Issue
-	comment := &github.IssueComment{Body: github.String(*commentBody)}
-	_, _, err = client.Issues.CreateComment(ctx, *owner, *repo, *issueNumber, comment)
+	err := issue.PostComment(*commentBody)
 	if err != nil {
 		logger.Fatalf("Error creating comment: %s", err)
 	}
