@@ -30,8 +30,8 @@ jobs:
           ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -token ${{ secrets.GITHUB_TOKEN }} -comment "Body: $BODY"
         env: # https://docs.github.com/ja/actions/learn-github-actions/variables#defining-environment-variables-for-a-single-workflow
           BODY: >
-            This is test issue.
-            repository ${{ env.REPOSITORY_NAME }}
-            runner.os ${{ runner.os }}
-            title ${{ github.event.issue.title }}
-            body ${{ github.event.issue.body }}
+            This is test comment.  
+            repository is ${{ env.REPOSITORY_NAME }}  
+            runner.os is ${{ runner.os }}  
+            title is ${{ github.event.issue.title }}  
+            body is \"${{ github.event.issue.body }}\"
