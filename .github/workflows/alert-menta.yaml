@@ -1,5 +1,6 @@
 name: Reacts to specific labels
 run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
+
 on:
   issues:
     types: [labeled] # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#issues
@@ -15,7 +16,7 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v4
 
-      - name: Download and Install PR Guardian
+      - name: Download and Install alert-menta
         run: |
           curl -sLJO -H 'Accept: application/octet-stream' \
           "https://${{ secrets.GITHUB_TOKEN }}0@api.github.com/repos/pacificbelt30/alert-menta/releases/assets/$( \
