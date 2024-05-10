@@ -10,12 +10,12 @@ go run ./cmd/main.go -owner "repository_owner" -issue 1 -repo "repository_name" 
 ### Get Tokens
 
 1. Set up a token by following the instructions [here](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
-  1. Grant access to the repository where you want to implement Alert-Menta.
-  2. Set the Repository Permissions as follows:
-    - Actions: Read and write
-    - Content: Read and write
-    - Metadata: Read-only
-    - Pull requests: Read and write
+    1. Grant access to the repository where you want to implement Alert-Menta.
+    2. Set the Repository Permissions as follows:
+        - Actions: Read and write
+        - Content: Read and write
+        - Metadata: Read-only
+        - Pull requests: Read and write
 
 ### Run as the GitHub Actions
 1. Add the secrets to your repository
@@ -30,12 +30,12 @@ run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
 
 on:
   issues:
-    types: [labeled] # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#issues
+    types: [labeled]
 
 jobs:
   Alert-Menta:
-    if: contains(github.event.issue.labels.*.name, '/describe') # https://docs.github.com/ja/webhooks/webhook-events-and-payloads#issues
-    runs-on: ubuntu-22.04 # https://docs.github.com/ja/actions/using-jobs/choosing-the-runner-for-a-job
+    if: contains(github.event.issue.labels.*.name, '/describe')
+    runs-on: ubuntu-22.04
     permissions:
       issues: write
       contents: read
@@ -55,7 +55,7 @@ jobs:
       - name: Add Comment
         run: |
           ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -token ${{ secrets.GITHUB_TOKEN }} -comment "Body: $BODY"
-        env: # https://docs.github.com/ja/actions/learn-github-actions/variables#defining-environment-variables-for-a-single-workflow
+        env:
           BODY: >
             This is test comment.  
             repository is ${{ env.REPOSITORY_NAME }}  
