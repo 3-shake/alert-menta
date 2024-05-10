@@ -7,7 +7,23 @@ go run ./cmd/main.go -owner "repository_owner" -issue 1 -repo "repository_name" 
 ```
 
 ## Setup
-Create actions file as `.github/workflows/alert-menta.yaml`.
+### Get Tokens
+
+1. Set up a token by following the instructions [here](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
+  1. Grant access to the repository where you want to implement Alert-Menta.
+  2. Set the Repository Permissions as follows:
+    - Actions: Read and write
+    - Content: Read and write
+    - Metadata: Read-only
+    - Pull requests: Read and write
+
+### Run as the GitHub Actions
+1. Add the secrets to your repository
+```
+GH_TOKEN = <your-github-token>
+```
+
+2. Create actions file as `.github/workflows/alert-menta.yaml` in your own repository.
 ``` yaml
 name: Reacts to specific labels
 run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
@@ -48,3 +64,5 @@ jobs:
             body is \"${{ github.event.issue.body }}\"
 
 ```
+
+3. Label `/describe` on the relevant Issues.
