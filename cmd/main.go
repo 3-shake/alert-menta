@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/3-shake/alert-menta/internal/ai"
 	"github.com/3-shake/alert-menta/internal/github"
 )
 
@@ -38,14 +39,25 @@ func main() {
 	body, _ := issue.GetBody()
 	logger.Println("Title:", *title)
 	logger.Println("Body:", *body)
+	user_prompt := "Title:" + *title + "\n"
+	user_prompt += "Body:" + *body + "\n"
 
 	comments, _ := issue.GetComments()
 	for _, v := range comments {
 		logger.Printf("%s: %s", *v.User.Login, *v.Body)
+		user_prompt += *v.User.Login + ":" + *v.Body + "\n"
 	}
 
+	// Set system prompt
+	prompt := "The following is the GitHub Issue and comments on it. Please summarize the conversation and suggest what issues need to be resolved.\n"
+
+	// Get response from OpenAI
+	logger.Println("Prompt:", prompt+user_prompt)
+	ai := ai.NewOpenAIClient("", "gpt-3.5-turbo")
+	comment, _ := ai.GetResponse(prompt + user_prompt)
+
 	// Post a comment on the Issue
-	err := issue.PostComment(*commentBody)
+	err := issue.PostComment(comment)
 	if err != nil {
 		logger.Fatalf("Error creating comment: %s", err)
 	}
