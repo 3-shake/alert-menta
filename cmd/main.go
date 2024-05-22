@@ -41,13 +41,18 @@ func main() {
 
 	comments, _ := issue.GetComments()
 	for _, v := range comments {
+		if *v.User.Login == "github-actions[bot]" {
+			continue
+		}
 		logger.Printf("%s: %s", *v.User.Login, *v.Body)
 	}
 
-	// Post a comment on the Issue
-	err := issue.PostComment(*commentBody)
-	if err != nil {
-		logger.Fatalf("Error creating comment: %s", err)
-	}
-	logger.Printf("Comment created successfully on Issue %d", *issueNumber)
+	/*
+		// Post a comment on the Issue
+		err := issue.PostComment(*commentBody)
+		if err != nil {
+			logger.Fatalf("Error creating comment: %s", err)
+		}
+		logger.Printf("Comment created successfully on Issue %d", *issueNumber)
+	*/
 }
