@@ -24,14 +24,16 @@ jobs:
           | jq '.assets[] | select(.name | contains("Linux_x86")) | .id')"
           tar -zxvf alert-menta_Linux_x86_64.tar.gz
       
-      - name: Set Command
+      - name: Set Command describe
+        id: describe
+        if: contains(github.event.issue.labels.*.name, '/describe')
         run: |
-          if [[ $(echo "${{ github.event.issue.labels.*.name }}" | grep '/describe') ]]; then
-            COMMAND="describe"
-          elif [[ $(echo "${{ github.event.issue.labels.*.name }}" | grep '/improve') ]]; then
-            COMMAND="improve"
-          fi
-          echo "COMMAND=${COMMAND}" >> $GITHUB_ENV
+          echo "COMMAND=describe" >> $GITHUB_ENV
+      - name: Set Command improve
+        id: improve
+        if: steps.describe.conclusion == 'skipped' || contains(github.event.issue.labels.*.name, '/improve')
+        run: |
+          echo "COMMAND=improve" >> $GITHUB_ENV
       - run: echo "REPOSITORY_NAME=${GITHUB_REPOSITORY#${GITHUB_REPOSITORY_OWNER}/}" >> $GITHUB_ENV
       - name: Add Comment
         run: |
