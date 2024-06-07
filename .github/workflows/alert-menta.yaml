@@ -7,7 +7,7 @@ on:
 
 jobs:
   Issue_Reaction:
-    if: contains(github.event.issue.labels.*.name, '/describe') # https://docs.github.com/ja/webhooks/webhook-events-and-payloads#issues
+    if: contains(github.event.issue.labels.*.name, '/describe') || contains(github.event.issue.labels.*.name, '/improve') # https://docs.github.com/ja/webhooks/webhook-events-and-payloads#issues
     runs-on: ubuntu-22.04 # https://docs.github.com/ja/actions/using-jobs/choosing-the-runner-for-a-job
     permissions:
       issues: write
@@ -24,14 +24,15 @@ jobs:
           | jq '.assets[] | select(.name | contains("Linux_x86")) | .id')"
           tar -zxvf alert-menta_Linux_x86_64.tar.gz
       
+      - name: Set Command
+        run: |
+          if [[ $(echo "${{ github.event.issue.labels.*.name }}" | grep '/describe') ]]; then
+            COMMAND="describe"
+          elif [[ $(echo "${{ github.event.issue.labels.*.name }}" | grep '/improve') ]]; then
+            COMMAND="improve"
+          fi
+          echo "COMMAND=${COMMAND}" >> $GITHUB_ENV
       - run: echo "REPOSITORY_NAME=${GITHUB_REPOSITORY#${GITHUB_REPOSITORY_OWNER}/}" >> $GITHUB_ENV
       - name: Add Comment
         run: |
-          ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -token ${{ secrets.GITHUB_TOKEN }} -comment "Body: $BODY"
-        env: # https://docs.github.com/ja/actions/learn-github-actions/variables#defining-environment-variables-for-a-single-workflow
-          BODY: >
-            This is test comment.  
-            repository is ${{ env.REPOSITORY_NAME }}  
-            runner.os is ${{ runner.os }}  
-            title is ${{ github.event.issue.title }}  
-            body is \"${{ github.event.issue.body }}\"
+          ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -token ${{ secrets.GITHUB_TOKEN }} -command $COMMAND
