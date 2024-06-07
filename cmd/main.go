@@ -17,11 +17,12 @@ func main() {
 		owner       = flag.String("owner", "", "Repository owner")
 		issueNumber = flag.Int("issue", 0, "Issue number")
 		command     = flag.String("command", "", "Command to be executed by AI")
-		token       = flag.String("token", "", "GitHub token")
+		gh_token    = flag.String("github-token", "", "GitHub token")
+		oai_key     = flag.String("api-key", "", "OpenAI api key")
 	)
 	flag.Parse()
 
-	if *repo == "" || *owner == "" || *issueNumber == 0 || *token == "" || *command == "" {
+	if *repo == "" || *owner == "" || *issueNumber == 0 || *gh_token == "" || *oai_key == "" || *command == "" {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
@@ -40,7 +41,7 @@ func main() {
 	}
 
 	// Create GitHub Issues instance
-	issue := github.NewIssue(*owner, *repo, *issueNumber, *token)
+	issue := github.NewIssue(*owner, *repo, *issueNumber, *gh_token)
 
 	// Get Issue's info
 	title, _ := issue.GetTitle()
@@ -64,7 +65,7 @@ func main() {
 
 	// Get response from OpenAI
 	logger.Println("Prompt:", system_prompt, user_prompt)
-	ai := ai.NewOpenAIClient("", cfg.Ai.Model)
+	ai := ai.NewOpenAIClient(*oai_key, cfg.Ai.Model)
 	comment, _ := ai.GetResponse(system_prompt + user_prompt)
 	logger.Println("Response:", comment)
 

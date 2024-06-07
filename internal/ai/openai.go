@@ -3,7 +3,6 @@ package ai
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/ai/azopenai"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
@@ -45,13 +44,11 @@ func (ai *OpenAI) GetResponse(prompt string) (string, error) {
 
 func NewOpenAIClient(apiKey string, model string) *OpenAI {
 	// Set the OpenAI API key (read from the environment variable)
-	apiKey = os.Getenv("OPENAI_API_KEY")
 	if apiKey == "" {
 		fmt.Println("Error: OPENAI_API_KEY environment variable not set.")
 		return nil
 	}
 	// Specifying the model to use
-	model = "gpt-3.5-turbo"
 	return &OpenAI{
 		apiKey: apiKey,
 		model:  model,
