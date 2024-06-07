@@ -7,6 +7,7 @@ import (
 
 	"github.com/3-shake/alert-menta/internal/ai"
 	"github.com/3-shake/alert-menta/internal/github"
+	"github.com/3-shake/alert-menta/internal/utils"
 )
 
 func main() {
@@ -16,11 +17,12 @@ func main() {
 		owner       = flag.String("owner", "", "Repository owner")
 		issueNumber = flag.Int("issue", 0, "Issue number")
 		commentBody = flag.String("comment", "", "Comment body")
+		command     = flag.String("command", "", "Command to be executed by AI")
 		token       = flag.String("token", "", "GitHub token")
 	)
 	flag.Parse()
 
-	if *repo == "" || *owner == "" || *issueNumber == 0 || *token == "" || *commentBody == "" {
+	if *repo == "" || *owner == "" || *issueNumber == 0 || *token == "" || *commentBody == "" || *command == "" {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
@@ -30,6 +32,13 @@ func main() {
 		os.Stdout, "[alert-menta main] ",
 		log.Ldate|log.Ltime|log.Llongfile|log.Lmsgprefix,
 	)
+
+	var err error
+
+	cfg, err := utils.NewConfig()
+	if err != nil {
+		logger.Fatalf("Error creating comment: %s", err)
+	}
 
 	// Create GitHub Issues instance
 	issue := github.NewIssue(*owner, *repo, *issueNumber, *token)
@@ -49,15 +58,16 @@ func main() {
 	}
 
 	// Set system prompt
-	prompt := "The following is the GitHub Issue and comments on it. Please summarize the conversation and suggest what issues need to be resolved.\n"
+	system_prompt := cfg.Ai.Commands[*command].System_prompt
 
 	// Get response from OpenAI
-	logger.Println("Prompt:", prompt+user_prompt)
-	ai := ai.NewOpenAIClient("", "gpt-3.5-turbo")
-	comment, _ := ai.GetResponse(prompt + user_prompt)
+	logger.Println("Prompt:", system_prompt, user_prompt)
+	ai := ai.NewOpenAIClient("", cfg.Ai.Model)
+	comment, _ := ai.GetResponse(system_prompt + user_prompt)
+	logger.Println("Response:", comment)
 
 	// Post a comment on the Issue
-	err := issue.PostComment(comment)
+	err = issue.PostComment(comment)
 	if err != nil {
 		logger.Fatalf("Error creating comment: %s", err)
 	}
