@@ -53,6 +53,9 @@ func main() {
 
 	comments, _ := issue.GetComments()
 	for _, v := range comments {
+		if *v.User.Login == "github-actions[bot]" {
+			continue
+		}
 		logger.Printf("%s: %s", *v.User.Login, *v.Body)
 		user_prompt += *v.User.Login + ":" + *v.Body + "\n"
 	}
