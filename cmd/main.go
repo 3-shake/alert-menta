@@ -16,13 +16,12 @@ func main() {
 		repo        = flag.String("repo", "", "Repository name")
 		owner       = flag.String("owner", "", "Repository owner")
 		issueNumber = flag.Int("issue", 0, "Issue number")
-		commentBody = flag.String("comment", "", "Comment body")
 		command     = flag.String("command", "", "Command to be executed by AI")
 		token       = flag.String("token", "", "GitHub token")
 	)
 	flag.Parse()
 
-	if *repo == "" || *owner == "" || *issueNumber == 0 || *token == "" || *commentBody == "" || *command == "" {
+	if *repo == "" || *owner == "" || *issueNumber == 0 || *token == "" || *command == "" {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
