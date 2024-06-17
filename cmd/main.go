@@ -68,6 +68,12 @@ func main() {
 		user_prompt += *v.User.Login + ":" + *v.Body + "\n"
 	}
 
+	user_prompt += "----------\nBelow is the source code for the repository.  Please use the code below to help you answer the issue, including how to respond to the issue.\n"
+	files, _ := utils.GetAllFiles("./")
+	for _, file := range files {
+		user_prompt += file.Path + ":" + file.Data + "\n"
+	}
+
 	// Set system prompt
 	system_prompt := cfg.Ai.Commands[*command].System_prompt
 

@@ -6,14 +6,17 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/ai/azopenai v0.5.1
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.11.1
 	github.com/google/go-github v17.0.0+incompatible
+	github.com/pkoukk/tiktoken-go v0.1.7
 	github.com/spf13/viper v1.19.0
 	golang.org/x/oauth2 v0.19.0
 )
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.5.2 // indirect
+	github.com/dlclark/regexp2 v1.10.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
+	github.com/google/uuid v1.4.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
