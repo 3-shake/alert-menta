@@ -48,6 +48,7 @@ func NewOpenAIClient(apiKey string, model string) *OpenAI {
 		fmt.Println("Error: OPENAI_API_KEY environment variable not set.")
 		return nil
 	}
+
 	// Specifying the model to use
 	return &OpenAI{
 		apiKey: apiKey,

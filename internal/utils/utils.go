@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Root structure of information read from config file
 type Config struct {
 	System System `yaml:"system"`
 	Ai     Ai     `yaml:"ai"`
@@ -54,6 +55,7 @@ func NewConfig(filename string) (*Config, error) {
 	// Get the directory and file name from variable filename
 	dir, file := filepath.Split(filename)
 	base, ext := filepath.Base(file)[:len(filepath.Base(file))-len(filepath.Ext(file))], filepath.Ext(file)[1:]
+
 	// Read the config file
 	viper.SetConfigName(base)
 	viper.SetConfigType(ext)

@@ -34,6 +34,7 @@ func main() {
 		log.Ldate|log.Ltime|log.Llongfile|log.Lmsgprefix,
 	)
 
+	// Pre-define variables for error handling
 	var err error
 
 	// Read the configuration file
@@ -42,10 +43,10 @@ func main() {
 		logger.Fatalf("Error creating comment: %s", err)
 	}
 
-	// Create GitHub Issues instance
+	// Create a GitHub Issues instance. From now on, you can control GitHub from this instance.
 	issue := github.NewIssue(*owner, *repo, *issueNumber, *gh_token)
 
-	// Get Issue's info
+	// Get Issue's information(e.g. Title, Body) and add them to the user prompt except for comments by Actions.
 	title, _ := issue.GetTitle()
 	body, _ := issue.GetBody()
 	if cfg.System.Debug.Log_level == "debug" {
@@ -55,6 +56,7 @@ func main() {
 	user_prompt := "Title:" + *title + "\n"
 	user_prompt += "Body:" + *body + "\n"
 
+	// Get comments under the Issue and add them to the user prompt except for comments by Actions.
 	comments, _ := issue.GetComments()
 	for _, v := range comments {
 		if *v.User.Login == "github-actions[bot]" {

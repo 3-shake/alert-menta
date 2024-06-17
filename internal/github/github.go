@@ -21,6 +21,7 @@ type GitHubIssues struct {
 }
 
 func (gh *GitHubIssues) GetIssue() (*github.Issue, error) {
+	// Only the first call retrieves information from GitHub, all other calls use cache
 	if gh.cache == nil {
 		issue, _, err := gh.client.Issues.Get(gh.ctx, gh.owner, gh.repo, gh.issueNumber)
 		if err != nil {
@@ -82,6 +83,7 @@ func NewIssue(owner string, repo string, issueNumber int, token string) *GitHubI
 		log.Ldate|log.Ltime|log.Llongfile|log.Lmsgprefix,
 	)
 
+	// Create a new GitHubIssues instance
 	issue := &GitHubIssues{owner: owner, repo: repo, issueNumber: issueNumber, token: token, client: client, ctx: ctx, logger: logger}
 	return issue
 }
