@@ -36,6 +36,7 @@ func main() {
 
 	var err error
 
+	// Read the configuration file
 	cfg, err := utils.NewConfig(*configFile)
 	if err != nil {
 		logger.Fatalf("Error creating comment: %s", err)
@@ -47,8 +48,10 @@ func main() {
 	// Get Issue's info
 	title, _ := issue.GetTitle()
 	body, _ := issue.GetBody()
-	logger.Println("Title:", *title)
-	logger.Println("Body:", *body)
+	if cfg.System.Debug.Log_level == "debug" {
+		logger.Println("Title:", *title)
+		logger.Println("Body:", *body)
+	}
 	user_prompt := "Title:" + *title + "\n"
 	user_prompt += "Body:" + *body + "\n"
 
@@ -57,7 +60,9 @@ func main() {
 		if *v.User.Login == "github-actions[bot]" {
 			continue
 		}
-		logger.Printf("%s: %s", *v.User.Login, *v.Body)
+		if cfg.System.Debug.Log_level == "debug" {
+			logger.Printf("%s: %s", *v.User.Login, *v.Body)
+		}
 		user_prompt += *v.User.Login + ":" + *v.Body + "\n"
 	}
 
@@ -65,15 +70,14 @@ func main() {
 	system_prompt := cfg.Ai.Commands[*command].System_prompt
 
 	// Get response from OpenAI
-	logger.Println("Prompt:", system_prompt, user_prompt)
+	logger.Println("\x1b[34mPrompt: |\n", system_prompt, user_prompt, "\x1b[0m")
 	ai := ai.NewOpenAIClient(*oai_key, cfg.Ai.Model)
 	comment, _ := ai.GetResponse(system_prompt + user_prompt)
-	logger.Println("Response:", comment)
+	logger.Println("\x1b[32mResponse: |\n", comment, "\x1b[0m")
 
 	// Post a comment on the Issue
 	err = issue.PostComment(comment)
 	if err != nil {
 		logger.Fatalf("Error creating comment: %s", err)
 	}
-	logger.Printf("Comment created successfully on Issue %d", *issueNumber)
 }

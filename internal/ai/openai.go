@@ -37,7 +37,7 @@ func (ai *OpenAI) GetResponse(prompt string) (string, error) {
 
 	// Print the response
 	// resp.Choices[0].Message.Content is type *string with azopenai and type string with go-openai
-	fmt.Println(*resp.Choices[0].Message.Content)
+	// fmt.Println(*resp.Choices[0].Message.Content)
 
 	return *resp.Choices[0].Message.Content, nil
 }
