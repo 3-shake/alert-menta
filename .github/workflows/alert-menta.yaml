@@ -4,10 +4,13 @@ run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
 on:
   issues:
     types: [labeled] # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#issues
+  issue_comment:
+    types: [created]
 
 jobs:
-  Issue_Reaction:
-    if: contains(github.event.issue.labels.*.name, '/describe') || contains(github.event.issue.labels.*.name, '/improve') # https://docs.github.com/ja/webhooks/webhook-events-and-payloads#issues
+  Alert-Menta:
+    if: (contains(github.event.issue.labels.*.name, '/describe') && startsWith(github.event.comment.body, '/describe')) ||
+      (contains(github.event.issue.labels.*.name, '/improve') && startsWith(github.event.comment.body, '/improve')) # https://docs.github.com/ja/webhooks/webhook-events-and-payloads#issues
     runs-on: ubuntu-22.04 # https://docs.github.com/ja/actions/using-jobs/choosing-the-runner-for-a-job
     permissions:
       issues: write
@@ -35,6 +38,7 @@ jobs:
         run: |
           echo "COMMAND=improve" >> $GITHUB_ENV
       - run: echo "REPOSITORY_NAME=${GITHUB_REPOSITORY#${GITHUB_REPOSITORY_OWNER}/}" >> $GITHUB_ENV
+
       - name: Get user defined config file
         id: user_config
         if: hashFiles('.alert-menta.user.yaml') != ''
