@@ -3,6 +3,7 @@ package utils
 import (
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/viper"
 )
@@ -43,17 +44,20 @@ type Github struct {
 	Repo  string `yaml:"repo"`
 }
 
-func NewConfig() (*Config, error) {
+func NewConfig(filename string) (*Config, error) {
 	// Initialize a logger
 	logger := log.New(
 		os.Stdout, "[alert-menta utils] ",
 		log.Ldate|log.Ltime|log.Llongfile|log.Lmsgprefix,
 	)
 
+	// Get the directory and file name from variable filename
+	dir, file := filepath.Split(filename)
+	base, ext := filepath.Base(file)[:len(filepath.Base(file))-len(filepath.Ext(file))], filepath.Ext(file)[1:]
 	// Read the config file
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./internal/config")
+	viper.SetConfigName(base)
+	viper.SetConfigType(ext)
+	viper.AddConfigPath(dir)
 	err := viper.ReadInConfig()
 	if err != nil {
 		logger.Fatalf("Error reading config file, %s", err)

@@ -18,6 +18,7 @@ func main() {
 		issueNumber = flag.Int("issue", 0, "Issue number")
 		command     = flag.String("command", "", "Command to be executed by AI")
 		token       = flag.String("token", "", "GitHub token")
+		configFile  = flag.String("config", "./internal/config/config.yaml", "Configuration file")
 	)
 	flag.Parse()
 
@@ -34,7 +35,7 @@ func main() {
 
 	var err error
 
-	cfg, err := utils.NewConfig()
+	cfg, err := utils.NewConfig(*configFile)
 	if err != nil {
 		logger.Fatalf("Error creating comment: %s", err)
 	}

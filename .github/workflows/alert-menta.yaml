@@ -35,6 +35,16 @@ jobs:
         run: |
           echo "COMMAND=improve" >> $GITHUB_ENV
       - run: echo "REPOSITORY_NAME=${GITHUB_REPOSITORY#${GITHUB_REPOSITORY_OWNER}/}" >> $GITHUB_ENV
+      - name: Get user defined config file
+        id: user_config
+        if: hashFiles('.alert-menta.user.yaml') != ''
+        run: |
+          echo "CONFIG_FILE=.alert-menta.user.yaml" >> $GITHUB_ENV
+      - name: Get default config file
+        if: steps.user_config.conclusion == 'skipped' && hashFiles('./internal/config/config.yaml') != ''
+        run: |
+          echo "CONFIG_FILE=./internal/config/config.yaml" >> $GITHUB_ENV
+
       - name: Add Comment
         run: |
-          ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -github-token ${{ secrets.GITHUB_TOKEN }} -api-key ${{ secrets.OPENAI_API_KEY }} -command $COMMAND
+          ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -github-token ${{ secrets.GITHUB_TOKEN }} -api-key ${{ secrets.OPENAI_API_KEY }} -command $COMMAND -config $CONFIG_FILE
