@@ -1,5 +1,5 @@
-name: Reacts to specific labels
-run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
+name: "Alert-Menta: Reacts to specific labels"
+run-name: ${{ GITHUB_REPOSITORY }} LLM responds to issues against the repository.🚀
 
 on:
   issues:
