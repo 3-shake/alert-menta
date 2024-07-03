@@ -13,7 +13,7 @@ type OpenAI struct {
 	model  string
 }
 
-func (ai *OpenAI) GetResponse(prompt string) (string, error) {
+func (ai *OpenAI) GetResponse(prompt Prompt) (string, error) {
 	// Create a new OpenAI client
 	keyCredential := azcore.NewKeyCredential(ai.apiKey)
 	client, _ := azopenai.NewClientForOpenAI("https://api.openai.com/v1/", keyCredential, nil)
@@ -21,7 +21,7 @@ func (ai *OpenAI) GetResponse(prompt string) (string, error) {
 	// Create a chat request with the prompt
 	messages := []azopenai.ChatRequestMessageClassification{
 		&azopenai.ChatRequestUserMessage{
-			Content: azopenai.NewChatRequestUserMessageContent(prompt),
+			Content: azopenai.NewChatRequestUserMessageContent(prompt.SystemPrompt + prompt.UserPrompt),
 		},
 	}
 

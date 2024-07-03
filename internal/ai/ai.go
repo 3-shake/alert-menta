@@ -1,5 +1,10 @@
 package ai
 
 type Ai interface {
-	GetResponse(prompt string) (string, error)
+	GetResponse(prompt Prompt) (string, error)
+}
+
+type Prompt struct {
+	UserPrompt   string
+	SystemPrompt string
 }

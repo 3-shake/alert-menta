@@ -14,11 +14,11 @@ type VertexAI struct {
 	model   string
 }
 
-func (ai *VertexAI) GetResponse(prompt string) (string, error) {
+func (ai *VertexAI) GetResponse(prompt Prompt) (string, error) {
 	model := ai.client.GenerativeModel(ai.model)
 	model.SetTemperature(0.9)
 
-	resp, err := model.GenerateContent(ai.context, genai.Text(prompt))
+	resp, err := model.GenerateContent(ai.context, genai.Text(prompt.SystemPrompt+prompt.UserPrompt))
 	if err != nil {
 		log.Fatal(err)
 		return "", err

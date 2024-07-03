@@ -36,6 +36,7 @@ func main() {
 
 	var err error
 
+	// Get configuration
 	cfg, err := utils.NewConfig(*configFile)
 	if err != nil {
 		logger.Fatalf("Error creating comment: %s", err)
@@ -47,12 +48,13 @@ func main() {
 	// Get Issue's info
 	title, _ := issue.GetTitle()
 	body, _ := issue.GetBody()
+	comments, _ := issue.GetComments()
 	logger.Println("Title:", *title)
 	logger.Println("Body:", *body)
+
+	// Create user prompt
 	user_prompt := "Title:" + *title + "\n"
 	user_prompt += "Body:" + *body + "\n"
-
-	comments, _ := issue.GetComments()
 	for _, v := range comments {
 		if *v.User.Login == "github-actions[bot]" {
 			continue
@@ -63,9 +65,10 @@ func main() {
 
 	// Set system prompt
 	system_prompt := cfg.Ai.Commands[*command].System_prompt
-	logger.Println("Prompt:", system_prompt, user_prompt)
+	prompt := ai.Prompt{UserPrompt: user_prompt, SystemPrompt: system_prompt}
+	logger.Println("Prompt:", prompt.SystemPrompt, prompt.UserPrompt)
 
-	// Get response from OpenAI
+	// Get response from OpenAI or VertexAI
 	var aic ai.Ai
 	if cfg.Ai.Provider == "openai" {
 		aic = ai.NewOpenAIClient(*oai_key, cfg.Ai.OpenAI.Model)
@@ -76,7 +79,8 @@ func main() {
 		logger.Println("Using VertexAI API")
 		logger.Println("VertexAI model:", cfg.Ai.VertexAI.Model)
 	}
-	comment, _ := aic.GetResponse(system_prompt + user_prompt)
+
+	comment, _ := aic.GetResponse(prompt)
 	logger.Println("Response:", comment)
 
 	// Post a comment on the Issue
