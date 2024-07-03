@@ -37,7 +37,7 @@ func main() {
 	// Pre-define variables for error handling
 	var err error
 
-	// Read the configuration file
+	// Get configuration
 	cfg, err := utils.NewConfig(*configFile)
 	if err != nil {
 		logger.Fatalf("Error creating comment: %s", err)
@@ -49,15 +49,13 @@ func main() {
 	// Get Issue's information(e.g. Title, Body) and add them to the user prompt except for comments by Actions.
 	title, _ := issue.GetTitle()
 	body, _ := issue.GetBody()
-	if cfg.System.Debug.Log_level == "debug" {
-		logger.Println("Title:", *title)
-		logger.Println("Body:", *body)
-	}
+	comments, _ := issue.GetComments()
+	logger.Println("Title:", *title)
+	logger.Println("Body:", *body)
+
+	// Create user prompt
 	user_prompt := "Title:" + *title + "\n"
 	user_prompt += "Body:" + *body + "\n"
-
-	// Get comments under the Issue and add them to the user prompt except for comments by Actions.
-	comments, _ := issue.GetComments()
 	for _, v := range comments {
 		if *v.User.Login == "github-actions[bot]" {
 			continue
@@ -70,12 +68,23 @@ func main() {
 
 	// Set system prompt
 	system_prompt := cfg.Ai.Commands[*command].System_prompt
+	prompt := ai.Prompt{UserPrompt: user_prompt, SystemPrompt: system_prompt}
+	logger.Println("\x1b[34mPrompt: |\n", prompt.SystemPrompt, prompt.UserPrompt, "\x1b[0m")
 
-	// Get response from OpenAI
-	logger.Println("\x1b[34mPrompt: |\n", system_prompt, user_prompt, "\x1b[0m")
-	ai := ai.NewOpenAIClient(*oai_key, cfg.Ai.Model)
-	comment, _ := ai.GetResponse(system_prompt + user_prompt)
-	logger.Println("\x1b[32mResponse: |\n", comment, "\x1b[0m")
+	// Get response from OpenAI or VertexAI
+	var aic ai.Ai
+	if cfg.Ai.Provider == "openai" {
+		aic = ai.NewOpenAIClient(*oai_key, cfg.Ai.OpenAI.Model)
+		logger.Println("Using OpenAI API")
+		logger.Println("OpenAI model:", cfg.Ai.OpenAI.Model)
+	} else {
+		aic = ai.NewVertexAIClient(cfg.Ai.VertexAI.Project, cfg.Ai.VertexAI.Region, cfg.Ai.VertexAI.Model)
+		logger.Println("Using VertexAI API")
+		logger.Println("VertexAI model:", cfg.Ai.VertexAI.Model)
+	}
+
+	comment, _ := aic.GetResponse(prompt)
+	logger.Println("Response:", comment)
 
 	// Post a comment on the Issue
 	err = issue.PostComment(comment)

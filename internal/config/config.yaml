@@ -8,7 +8,14 @@ github:
   repo: "alert-menta"
 
 ai:
-  model: "gpt-3.5-turbo" # Check the list of available models by `curl https://api.openai.com/v1/models -H "Authorization: Bearer $OPENAI_API_KEY"`
+  provider: "vertexai" # "openai" or "vertexai"
+  openai:
+    model: "gpt-3.5-turbo" # Check the list of available models by `curl https://api.openai.com/v1/models -H "Authorization: Bearer $OPENAI_API_KEY"`
+
+  vertexai:
+    project: "<YOUR_PROJECT_ID>"
+    location: "us-central1"
+    model: "gemini-1.5-flash-001"
   
   commands:
     - describe:
