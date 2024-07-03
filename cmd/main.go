@@ -63,11 +63,20 @@ func main() {
 
 	// Set system prompt
 	system_prompt := cfg.Ai.Commands[*command].System_prompt
+	logger.Println("Prompt:", system_prompt, user_prompt)
 
 	// Get response from OpenAI
-	logger.Println("Prompt:", system_prompt, user_prompt)
-	ai := ai.NewOpenAIClient(*oai_key, cfg.Ai.Model)
-	comment, _ := ai.GetResponse(system_prompt + user_prompt)
+	var aic ai.Ai
+	if cfg.Ai.Provider == "openai" {
+		aic = ai.NewOpenAIClient(*oai_key, cfg.Ai.OpenAI.Model)
+		logger.Println("Using OpenAI API")
+		logger.Println("OpenAI model:", cfg.Ai.OpenAI.Model)
+	} else {
+		aic = ai.NewVertexAIClient(cfg.Ai.VertexAI.Project, cfg.Ai.VertexAI.Region, cfg.Ai.VertexAI.Model)
+		logger.Println("Using VertexAI API")
+		logger.Println("VertexAI model:", cfg.Ai.VertexAI.Model)
+	}
+	comment, _ := aic.GetResponse(system_prompt + user_prompt)
 	logger.Println("Response:", comment)
 
 	// Post a comment on the Issue

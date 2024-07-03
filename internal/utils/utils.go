@@ -29,8 +29,10 @@ type SystemDebug struct {
 }
 
 type Ai struct {
-	Model    string             `yaml:"model"`
 	Commands map[string]Command `yaml:"commands"`
+	Provider string             `yaml:"provider"`
+	OpenAI   OpenAI             `yaml:"openai"`
+	VertexAI VertexAI           `yaml:"vertexai"`
 }
 
 type Command struct {
@@ -42,6 +44,16 @@ type Command struct {
 type Github struct {
 	Owner string `yaml:"owner"`
 	Repo  string `yaml:"repo"`
+}
+
+type OpenAI struct {
+	Model string `yaml:"model"`
+}
+
+type VertexAI struct {
+	Model   string `yaml:"model"`
+	Project string `yaml:"project"`
+	Region  string `yaml:"region"`
 }
 
 func NewConfig(filename string) (*Config, error) {
