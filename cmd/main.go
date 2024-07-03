@@ -37,7 +37,11 @@ func main() {
 	// Pre-define variables for error handling
 	var err error
 
+<<<<<<< HEAD
+	// Read the configuration file
+=======
 	// Get configuration
+>>>>>>> feature/ai/switch
 	cfg, err := utils.NewConfig(*configFile)
 	if err != nil {
 		logger.Fatalf("Error creating comment: %s", err)
@@ -49,13 +53,16 @@ func main() {
 	// Get Issue's information(e.g. Title, Body) and add them to the user prompt except for comments by Actions.
 	title, _ := issue.GetTitle()
 	body, _ := issue.GetBody()
-	comments, _ := issue.GetComments()
-	logger.Println("Title:", *title)
-	logger.Println("Body:", *body)
-
-	// Create user prompt
+<<<<<<< HEAD
+	if cfg.System.Debug.Log_level == "debug" {
+		logger.Println("Title:", *title)
+		logger.Println("Body:", *body)
+	}
 	user_prompt := "Title:" + *title + "\n"
 	user_prompt += "Body:" + *body + "\n"
+
+	// Get comments under the Issue and add them to the user prompt except for comments by Actions.
+	comments, _ := issue.GetComments()
 	for _, v := range comments {
 		if *v.User.Login == "github-actions[bot]" {
 			continue
