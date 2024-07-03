@@ -9,8 +9,7 @@ on:
 
 jobs:
   Alert-Menta:
-    if: (contains(github.event.issue.labels.*.name, '/describe') && startsWith(github.event.comment.body, '/describe')) ||
-      (contains(github.event.issue.labels.*.name, '/improve') && startsWith(github.event.comment.body, '/improve')) # https://docs.github.com/ja/webhooks/webhook-events-and-payloads#issues
+    if: contains(github.event.issue.labels.*.name, 'incident') && (startsWith(github.event.comment.body, '/describe') || startsWith(github.event.comment.body, '/improve')) # https://docs.github.com/ja/webhooks/webhook-events-and-payloads#issues
     runs-on: ubuntu-22.04 # https://docs.github.com/ja/actions/using-jobs/choosing-the-runner-for-a-job
     permissions:
       issues: write
@@ -29,12 +28,12 @@ jobs:
       
       - name: Set Command describe
         id: describe
-        if: contains(github.event.issue.labels.*.name, '/describe')
+        if: startsWith(github.event.comment.body, '/describe')
         run: |
           echo "COMMAND=describe" >> $GITHUB_ENV
       - name: Set Command improve
         id: improve
-        if: steps.describe.conclusion == 'skipped' || contains(github.event.issue.labels.*.name, '/improve')
+        if: steps.describe.conclusion == 'skipped' || startsWith(github.event.comment.body, '/improve')
         run: |
           echo "COMMAND=improve" >> $GITHUB_ENV
       - run: echo "REPOSITORY_NAME=${GITHUB_REPOSITORY#${GITHUB_REPOSITORY_OWNER}/}" >> $GITHUB_ENV
