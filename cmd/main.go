@@ -35,9 +35,6 @@ func main() {
 		log.Ldate|log.Ltime|log.Llongfile|log.Lmsgprefix,
 	)
 
-	// Pre-define variables for error handling
-	var err error
-
 	// Get configuration
 	cfg, err := utils.NewConfig(*configFile)
 	if err != nil {
@@ -51,12 +48,12 @@ func main() {
 	}
 
 	// Get Issue's information(e.g. Title, Body) and add them to the user prompt except for comments by Actions.
-	title, _ := issue.GetTitle()
-	if err != nil || title == nil {
+	title, err := issue.GetTitle()
+	if err != nil {
 		logger.Fatalf("Error getting Title: %v", err)
 	}
-	body, _ := issue.GetBody()
-	if err != nil || body == nil {
+	body, err := issue.GetBody()
+	if err != nil {
 		logger.Fatalf("Error getting Body: %v", err)
 	}
 	if cfg.System.Debug.Log_level == "debug" {
