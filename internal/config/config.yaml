@@ -8,7 +8,7 @@ github:
   repo: "alert-menta"
 
 ai:
-  provider: "vertexai" # "openai" or "vertexai"
+  provider: "openai" # "openai" or "vertexai"
   openai:
     model: "gpt-3.5-turbo" # Check the list of available models by `curl https://api.openai.com/v1/models -H "Authorization: Bearer $OPENAI_API_KEY"`
 
@@ -24,3 +24,6 @@ ai:
     - improve:
         description: "Improve the GitHub Issues"
         system_prompt: "The following is the GitHub Issue and comments on it. Please identify the issues that need to be resolved based on the contents of the Issue and provide three suggestions for improvement."
+    - ask:
+        description: "Ask a question about the GitHub Issue"
+        system_prompt: "The following is the GitHub Issue and comments on it. Based on the content provide a detailed response to the following question:\n"
