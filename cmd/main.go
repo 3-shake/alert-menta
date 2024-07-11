@@ -19,7 +19,6 @@ func main() {
 		intent      = flag.String("intent", "", "Question or intent for the 'ask' command")
 		command     = flag.String("command", "", `Command to be executed by AI
 	describe: Generate a detailed description of the Issue.
-	analyze: Perform a root cause analysis based on the contents of the Issue.
 	suggest: Provide suggestions for improvement based on the contents of the Issue.
 	ask: Answer free-text questions.`)
 		configFile  = flag.String("config", "./internal/config/config.yaml", "Configuration file")
@@ -68,8 +67,8 @@ func main() {
 	user_prompt += "Body:" + *body + "\n"
 
 	// Get comments under the Issue and add them to the user prompt except for comments by Actions.
-	comments, _ := issue.GetComments()
-	if err != nil || comments == nil {
+	comments, err := issue.GetComments()
+	if err != nil {
 		logger.Fatalf("Error getting comments: %v", err)
 	}
 	for _, v := range comments {
