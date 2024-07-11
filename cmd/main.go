@@ -85,7 +85,10 @@ func main() {
 	var system_prompt string
     if *command == "ask" {
         if *intent == "" {
-            logger.Fatalf("Error: intent is required for 'ask' command")
+			log.SetOutput(os.Stdout)
+            logger.Println("Error: intent is required for 'ask' command")
+			flag.PrintDefaults()
+			os.Exit(1)
         }
         system_prompt = cfg.Ai.Commands[*command].System_prompt + *intent
     } else {
