@@ -85,7 +85,6 @@ func main() {
 	var system_prompt string
     if *command == "ask" {
         if *intent == "" {
-			log.SetOutput(os.Stdout)
             logger.Println("Error: intent is required for 'ask' command")
 			flag.PrintDefaults()
 			os.Exit(1)
