@@ -17,7 +17,11 @@ func main() {
 		owner       = flag.String("owner", "", "Repository owner")
 		issueNumber = flag.Int("issue", 0, "Issue number")
 		intent      = flag.String("intent", "", "Question or intent for the 'ask' command")
-		command     = flag.String("command", "", "Command to be executed by AI")
+		command     = flag.String("command", "", `Command to be executed by AI
+	describe: Generate a detailed description of the Issue.
+	analyze: Perform a root cause analysis based on the contents of the Issue.
+	suggest: Provide suggestions for improvement based on the contents of the Issue.
+	ask: Answer free-text questions.`)
 		configFile  = flag.String("config", "./internal/config/config.yaml", "Configuration file")
 		gh_token    = flag.String("github-token", "", "GitHub token")
 		oai_key     = flag.String("api-key", "", "OpenAI api key")
@@ -83,7 +87,7 @@ func main() {
     if *command == "ask" {
         if *intent == "" {
 			log.SetOutput(os.Stdout)
-            logger.Println("Error: intent is required for 'ask' command")
+			logger.Println("Error: intent is required for 'ask' command")
 			flag.PrintDefaults()
 			os.Exit(1)
         }
