@@ -1,10 +1,40 @@
 # alert-menta
 An innovative tool 🚀 for real-time analysis and management of Issues' alerts. 🔍 It identifies alert causes, proposes actionable solutions 💡, and offers customizable filters 🎛️ and detailed reports 📈. Designed for developers 👨‍💻, managers 📋, and IT teams 💻, AlertMenta enhances productivity and software quality. 🌟
 
+## Requirements
+- Go <= 1.22.2
+- OpenAI API Key
+- GitHub Token
+
 ## Run Locally
+### Install golang
+Install Go with reference to [here](https://go.dev/doc/install).  
+If you are on Linux, you can follow the steps below to install the software.
+```bash
+$ wget https://go.dev/dl/go1.22.5.linux-amd64.tar.gz
+$ rm -rf /usr/local/go && tar -C /usr/local -xzf go1.22.5.linux-amd64.tar.gz
+$ echo "export PATH=\$PATH:/usr/local/go/bin" >> $HOME/.profile
 ```
+
+Check the version of go. `Go 1.22.2` is used for development.
+```bash
+$ go version
+go version go1.22.2 linux/amd64
+```
+
+### Clone alert-menta project
+```bash
+$ git clone https://github.com/3-shake/alert-menta.git
+$ cd alert-menta
+```
+
+### Run alert-menta using go
+```bash
 go run ./cmd/main.go -owner <owner> -issue <issue-number> -repo <repository> -github-token $GITHUB_TOKEN -api-key $OPENAI_API_KEY -command <describe or improve> -config <User_defined_config_file>
 ```
+
+## Run Locally with Docker
+in the process of writing...
 
 ## Setup to run as the GitHub Actions
 ### Get Tokens
@@ -28,7 +58,7 @@ OPENAI_API_KEY = <your-openai-api-key>
 Create an action file in your repository as `.github/workflows/alert-menta.yaml` with the following contents.
 ``` yaml
 name: "Alert-Menta: Reacts to specific labels"
-run-name: ${{ GITHUB_REPOSITORY }} LLM responds to issues against the repository.🚀
+run-name: LLM responds to issues against the repository.🚀
 
 on:
   issues:
@@ -99,15 +129,25 @@ github:
   repo: "<repository>"
 
 ai:
-  model: "gpt-3.5-turbo" # Check the list of available models by `curl https://api.openai.com/v1/models -H "Authorization: Bearer $OPENAI_API_KEY"`
+  provider: "openai" # "openai" or "vertexai"
+  openai:
+    model: "<MODEL_ID>" # Check the list of available models by `curl https://api.openai.com/v1/models -H "Authorization: Bearer $OPENAI_API_KEY"` (e.g. gpt-3.5-turbo)
+
+  vertexai:
+    project: "<YOUR_PROJECT_ID>"
+    location: "<YOUR_REGION>"
+    model: "<MODEL_ID>" # e.g. gemini-1.5-flash-001
   
   commands:
     - describe:
         description: "Describe the GitHub Issues"
-        system_prompt: "System prompt for your configured /describe command"
+        system_prompt: "The following is the GitHub Issue and comments on it. Please summarize the conversation and suggest what issues need to be resolved.\n"
     - improve:
         description: "Improve the GitHub Issues"
-        system_prompt: "System prompt for your configured /describe command"
+        system_prompt: "The following is the GitHub Issue and comments on it. Please identify the issues that need to be resolved based on the contents of the Issue and provide three suggestions for improvement."
+    - ask:
+        description: "Ask a question about the GitHub Issue"
+        system_prompt: "The following is the GitHub Issue and comments on it. Based on the content provide a detailed response to the following question:\n"
 ```
 
 ## Run as GitHub Actions
