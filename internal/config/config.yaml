@@ -20,10 +20,10 @@ ai:
   commands:
     - describe:
         description: "Describe the GitHub Issues"
-        system_prompt: "The following is the GitHub Issue and comments on it. Please summarize the conversation and suggest what issues need to be resolved.\n"
-    - improve:
-        description: "Improve the GitHub Issues"
-        system_prompt: "The following is the GitHub Issue and comments on it. Please identify the issues that need to be resolved based on the contents of the Issue and provide three suggestions for improvement."
+        system_prompt: "The following is the GitHub Issue and comments on it. Please Generate a detailed description.\n"
+    - suggest:
+        description: "Provide suggestions for improvement based on the contents of the Issue"
+        system_prompt: "The following is the GitHub Issue and comments on it. Please identify the issues that need to be resolved based on the contents of the Issue and provide three suggestions for improvement.\n"
     - ask:
         description: "Ask a question about the GitHub Issue"
         system_prompt: "The following is the GitHub Issue and comments on it. Based on the content provide a detailed response to the following question:\n"
