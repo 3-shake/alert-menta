@@ -19,13 +19,13 @@ func main() {
 		issueNumber = flag.Int("issue", 0, "Issue number")
 		intent      = flag.String("intent", "", "Question or intent for the 'ask' command")
 		command     = flag.String("command", "", "Commands to be executed by AI.Commands defined in the configuration file are available.")
-		configFile  = flag.String("config", "./internal/config/config.yaml", "Configuration file")
+		configFile  = flag.String("config", "", "Configuration file")
 		gh_token    = flag.String("github-token", "", "GitHub token")
 		oai_key     = flag.String("api-key", "", "OpenAI api key")
 	)
 	flag.Parse()
 
-	if *repo == "" || *owner == "" || *issueNumber == 0 || *gh_token == "" || *oai_key == "" || *command == "" {
+	if *repo == "" || *owner == "" || *issueNumber == 0 || *gh_token == "" || *oai_key == "" || *command == "" || *configFile == "" {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}

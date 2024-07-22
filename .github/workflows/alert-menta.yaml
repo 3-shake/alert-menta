@@ -1,14 +1,14 @@
-name: Reacts to specific labels
-run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
+name: "Alert-Menta: Reacts to specific commands"
+run-name: LLM responds to issues against the repository.🚀
 
 on:
-  issues:
-    types: [labeled] # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#issues
+  issue_comment:
+    types: [created]
 
 jobs:
-  Issue_Reaction:
-    if: contains(github.event.issue.labels.*.name, '/describe') || contains(github.event.issue.labels.*.name, '/improve') # https://docs.github.com/ja/webhooks/webhook-events-and-payloads#issues
-    runs-on: ubuntu-22.04 # https://docs.github.com/ja/actions/using-jobs/choosing-the-runner-for-a-job
+  Alert-Menta:
+    if: startsWith(github.event.comment.body, '/describe') || startsWith(github.event.comment.body, '/suggest') || startsWith(github.event.comment.body, '/ask')
+    runs-on: ubuntu-22.04
     permissions:
       issues: write
       contents: read
@@ -20,31 +20,37 @@ jobs:
         run: |
           curl -sLJO -H 'Accept: application/octet-stream' \
           "https://${{ secrets.GH_TOKEN }}@api.github.com/repos/3-shake/alert-menta/releases/assets/$( \
-          curl -sL "https://${{ secrets.GH_TOKEN }}@api.github.com/repos/3-shake/alert-menta/releases/tags/v0.0.1" \
+          curl -sL "https://${{ secrets.GH_TOKEN }}@api.github.com/repos/3-shake/alert-menta/releases/tags/v0.0.3" \
           | jq '.assets[] | select(.name | contains("Linux_x86")) | .id')"
           tar -zxvf alert-menta_Linux_x86_64.tar.gz
-      
-      - name: Set Command describe
-        id: describe
-        if: contains(github.event.issue.labels.*.name, '/describe')
+
+      - name: Set Command
+        id: set_command
         run: |
-          echo "COMMAND=describe" >> $GITHUB_ENV
-      - name: Set Command improve
-        id: improve
-        if: steps.describe.conclusion == 'skipped' || contains(github.event.issue.labels.*.name, '/improve')
-        run: |
-          echo "COMMAND=improve" >> $GITHUB_ENV
+          COMMENT_BODY="${{ github.event.comment.body }}"
+          if [[ "$COMMENT_BODY" == /ask* ]]; then
+            COMMAND=ask
+            INTENT=${COMMENT_BODY:5} # Get the string following the ask command
+            echo "INTENT=$INTENT" >> $GITHUB_ENV
+          elif [[ "$COMMENT_BODY" == /describe* ]]; then
+            COMMAND=describe
+          elif [[ "$COMMENT_BODY" == /suggest* ]]; then
+            COMMAND=suggest
+          fi
+          echo "COMMAND=$COMMAND" >> $GITHUB_ENV
+
       - run: echo "REPOSITORY_NAME=${GITHUB_REPOSITORY#${GITHUB_REPOSITORY_OWNER}/}" >> $GITHUB_ENV
+
       - name: Get user defined config file
         id: user_config
         if: hashFiles('.alert-menta.user.yaml') != ''
         run: |
-          echo "CONFIG_FILE=.alert-menta.user.yaml" >> $GITHUB_ENV
-      - name: Get default config file
-        if: steps.user_config.conclusion == 'skipped' && hashFiles('./internal/config/config.yaml') != ''
-        run: |
-          echo "CONFIG_FILE=./internal/config/config.yaml" >> $GITHUB_ENV
+          curl -H "Authorization: token ${{ secrets.GH_TOKEN }}" -L -o .alert-menta.user.yaml "https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ env.REPOSITORY_NAME }}/main/.alert-menta.user.yaml" && echo "CONFIG_FILE=./.alert-menta.user.yaml" >> $GITHUB_ENV
 
       - name: Add Comment
         run: |
-          ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -github-token ${{ secrets.GITHUB_TOKEN }} -api-key ${{ secrets.OPENAI_API_KEY }} -command $COMMAND -config $CONFIG_FILE
+          if [[ "$COMMAND" == "ask" ]]; then
+            ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -github-token ${{ secrets.GH_TOKEN }} -api-key ${{ secrets.OPENAI_API_KEY }} -command $COMMAND -config $CONFIG_FILE -intent $INTENT
+          else
+            ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -github-token ${{ secrets.GH_TOKEN }} -api-key ${{ secrets.OPENAI_API_KEY }} -command $COMMAND -config $CONFIG_FILE
+          fi
