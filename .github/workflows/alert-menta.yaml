@@ -30,7 +30,7 @@ jobs:
           COMMENT_BODY="${{ github.event.comment.body }}"
           if [[ "$COMMENT_BODY" == /ask* ]]; then
             COMMAND=ask
-            INTENT=${COMMENT_BODY:5} # Get the string following the ask command
+            INTENT=${COMMENT_BODY:5}
             echo "INTENT=$INTENT" >> $GITHUB_ENV
           elif [[ "$COMMENT_BODY" == /describe* ]]; then
             COMMAND=describe
