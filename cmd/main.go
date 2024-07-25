@@ -93,7 +93,7 @@ func main() {
 		imageRegex := regexp.MustCompile(`!\[(.*?)\]\((.*?)\)`) // Get URL from ![alt](url)
 		matches := imageRegex.FindAllStringSubmatch(*v.Body, -1)
 		for _, match := range matches {
-			logger.Println(match[2]) // 画像の URL を出力
+			logger.Println(match[2]) // Output the URL of the image
 			image_url, ext, err := utils.DownloadImage(match[2], *gh_token)
 			if err != nil {
 				logger.Fatalf("Error downloading image: %s", err)
