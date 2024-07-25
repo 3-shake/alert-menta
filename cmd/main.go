@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"os"
+	"regexp"
 
 	"github.com/3-shake/alert-menta/internal/ai"
 	"github.com/3-shake/alert-menta/internal/github"
@@ -22,9 +23,9 @@ func main() {
 	analyze: Perform a root cause analysis based on the contents of the Issue.
 	suggest: Provide suggestions for improvement based on the contents of the Issue.
 	ask: Answer free-text questions.`)
-		configFile  = flag.String("config", "./internal/config/config.yaml", "Configuration file")
-		gh_token    = flag.String("github-token", "", "GitHub token")
-		oai_key     = flag.String("api-key", "", "OpenAI api key")
+		configFile = flag.String("config", "./internal/config/config.yaml", "Configuration file")
+		gh_token   = flag.String("github-token", "", "GitHub token")
+		oai_key    = flag.String("api-key", "", "OpenAI api key")
 	)
 	flag.Parse()
 
@@ -68,6 +69,7 @@ func main() {
 	user_prompt += "Body:" + *body + "\n"
 
 	// Get comments under the Issue and add them to the user prompt except for comments by Actions.
+	images := []ai.Image{}
 	comments, _ := issue.GetComments()
 	if err != nil || comments == nil {
 		logger.Fatalf("Error getting comments: %v", err)
@@ -80,23 +82,37 @@ func main() {
 			logger.Printf("%s: %s", *v.User.Login, *v.Body)
 		}
 		user_prompt += *v.User.Login + ":" + *v.Body + "\n"
+
+		// Get image
+		imageRegex := regexp.MustCompile(`!\[(.*?)\]\((.*?)\)`) // Get URL from ![alt](url)
+		matches := imageRegex.FindAllStringSubmatch(*v.Body, -1)
+		for _, match := range matches {
+			logger.Println(match[2]) // 画像の URL を出力
+			image_url, ext, err := utils.DownloadImage(match[2], *gh_token)
+			if err != nil {
+				logger.Fatalf("Error downloading image: %s", err)
+				return
+			}
+
+			images = append(images, ai.Image{Data: image_url, Extension: ext})
+		}
 	}
 
 	// Set system prompt
 	var system_prompt string
-    if *command == "ask" {
-        if *intent == "" {
+	if *command == "ask" {
+		if *intent == "" {
 			log.SetOutput(os.Stdout)
 			logger.Println("Error: intent is required for 'ask' command")
 			flag.PrintDefaults()
 			os.Exit(1)
-        }
-        system_prompt = cfg.Ai.Commands[*command].System_prompt + *intent
-    } else {
-        system_prompt = cfg.Ai.Commands[*command].System_prompt
-    }
-	prompt := ai.Prompt{UserPrompt: user_prompt, SystemPrompt: system_prompt}
-	logger.Println("\x1b[34mPrompt: |\n", prompt.SystemPrompt, prompt.UserPrompt, "\x1b[0m")
+		}
+		system_prompt = cfg.Ai.Commands[*command].System_prompt + *intent
+	} else {
+		system_prompt = cfg.Ai.Commands[*command].System_prompt
+	}
+	prompt := ai.Prompt{UserPrompt: user_prompt, SystemPrompt: system_prompt, Images: images}
+	logger.Println("\x1b[34mPrompt: |\n", prompt.SystemPrompt, prompt.UserPrompt, "\x1b[0m + ", len(prompt.Images), "images")
 
 	// Get response from OpenAI or VertexAI
 	var aic ai.Ai
