@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/3-shake/alert-menta/internal/ai"
 	"github.com/3-shake/alert-menta/internal/github"
@@ -18,18 +19,14 @@ func main() {
 		owner       = flag.String("owner", "", "Repository owner")
 		issueNumber = flag.Int("issue", 0, "Issue number")
 		intent      = flag.String("intent", "", "Question or intent for the 'ask' command")
-		command     = flag.String("command", "", `Command to be executed by AI
-	describe: Generate a detailed description of the Issue.
-	analyze: Perform a root cause analysis based on the contents of the Issue.
-	suggest: Provide suggestions for improvement based on the contents of the Issue.
-	ask: Answer free-text questions.`)
-		configFile = flag.String("config", "./internal/config/config.yaml", "Configuration file")
-		gh_token   = flag.String("github-token", "", "GitHub token")
-		oai_key    = flag.String("api-key", "", "OpenAI api key")
+		command     = flag.String("command", "", "Commands to be executed by AI.Commands defined in the configuration file are available.")
+		configFile  = flag.String("config", "", "Configuration file")
+		gh_token    = flag.String("github-token", "", "GitHub token")
+		oai_key     = flag.String("api-key", "", "OpenAI api key")
 	)
 	flag.Parse()
 
-	if *repo == "" || *owner == "" || *issueNumber == 0 || *gh_token == "" || *oai_key == "" || *command == "" {
+	if *repo == "" || *owner == "" || *issueNumber == 0 || *gh_token == "" || *oai_key == "" || *command == "" || *configFile == "" {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
@@ -40,10 +37,19 @@ func main() {
 		log.Ldate|log.Ltime|log.Llongfile|log.Lmsgprefix,
 	)
 
-	// Get configuration
+	// Load configuration
 	cfg, err := utils.NewConfig(*configFile)
 	if err != nil {
 		logger.Fatalf("Error creating comment: %s", err)
+	}
+
+	// Validate command
+	if _, ok := cfg.Ai.Commands[*command]; !ok {
+		allowedCommands := make([]string, 0, len(cfg.Ai.Commands))
+		for cmd := range cfg.Ai.Commands {
+			allowedCommands = append(allowedCommands, cmd)
+		}
+		logger.Fatalf("Invalid command: %s. Allowed commands are %s.", *command, strings.Join(allowedCommands, ", "))
 	}
 
 	// Create a GitHub Issues instance. From now on, you can control GitHub from this instance.
@@ -70,8 +76,8 @@ func main() {
 
 	// Get comments under the Issue and add them to the user prompt except for comments by Actions.
 	images := []ai.Image{}
-	comments, _ := issue.GetComments()
-	if err != nil || comments == nil {
+	comments, err := issue.GetComments()
+	if err != nil {
 		logger.Fatalf("Error getting comments: %v", err)
 	}
 	for _, v := range comments {
@@ -102,7 +108,6 @@ func main() {
 	var system_prompt string
 	if *command == "ask" {
 		if *intent == "" {
-			log.SetOutput(os.Stdout)
 			logger.Println("Error: intent is required for 'ask' command")
 			flag.PrintDefaults()
 			os.Exit(1)
