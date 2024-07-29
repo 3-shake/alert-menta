@@ -96,7 +96,7 @@ func main() {
 			flag.PrintDefaults()
 			os.Exit(1)
         }
-        system_prompt = cfg.Ai.Commands[*command].System_prompt + *intent
+        system_prompt = cfg.Ai.Commands[*command].System_prompt + *intent + "\n"
     } else {
         system_prompt = cfg.Ai.Commands[*command].System_prompt
     }
