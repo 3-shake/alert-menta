@@ -25,7 +25,7 @@ func main() {
 	)
 	flag.Parse()
 
-	if *repo == "" || *owner == "" || *issueNumber == 0 || *gh_token == "" || *oai_key == "" || *command == "" || *configFile == "" {
+	if *repo == "" || *owner == "" || *issueNumber == 0 || *gh_token == "" || *command == "" || *configFile == "" {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
@@ -106,6 +106,11 @@ func main() {
 	// Get response from OpenAI or VertexAI
 	var aic ai.Ai
 	if cfg.Ai.Provider == "openai" {
+		if *oai_key == "" {
+            logger.Println("Error: Please provide your Open AI API key.")
+			flag.PrintDefaults()
+			os.Exit(1)
+        }
 		aic = ai.NewOpenAIClient(*oai_key, cfg.Ai.OpenAI.Model)
 		logger.Println("Using OpenAI API")
 		logger.Println("OpenAI model:", cfg.Ai.OpenAI.Model)
