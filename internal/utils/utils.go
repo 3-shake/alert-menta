@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io"
 	"log"
@@ -144,4 +145,9 @@ func DownloadImage(url string, token string) ([]byte, string, error) {
 	ext := matches[0][1]
 
 	return data, ext, nil
+}
+
+func ImageToBase64(data []byte, ext string) string {
+	base64img := base64.StdEncoding.EncodeToString(data)
+	return "data:image/" + ext + ";base64," + base64img
 }

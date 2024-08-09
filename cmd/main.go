@@ -116,7 +116,7 @@ func main() {
 	} else {
 		system_prompt = cfg.Ai.Commands[*command].System_prompt
 	}
-	prompt := ai.Prompt{UserPrompt: user_prompt, SystemPrompt: system_prompt}
+	prompt := ai.Prompt{UserPrompt: user_prompt, SystemPrompt: system_prompt, Images: images}
 	logger.Println("\x1b[34mPrompt: |\n", prompt.SystemPrompt, prompt.UserPrompt, "\x1b[0m")
 
 	// Get response from OpenAI or VertexAI
@@ -137,7 +137,7 @@ func main() {
 	}
 
 	comment, _ := aic.GetResponse(prompt)
-	logger.Println("Response:", comment)
+	logger.Println("\x1b[32mResponse:", comment, "\x1b[0m")
 
 	// Post a comment on the Issue
 	err = issue.PostComment(comment)
