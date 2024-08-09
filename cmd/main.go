@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/3-shake/alert-menta/internal/ai"
@@ -43,14 +44,14 @@ func main() {
 	}
 
 	// Validate command
-    if _, ok := cfg.Ai.Commands[*command]; !ok {
-        allowedCommands := make([]string, 0, len(cfg.Ai.Commands))
-        for cmd := range cfg.Ai.Commands {
-            allowedCommands = append(allowedCommands, cmd)
-        }
-        logger.Fatalf("Invalid command: %s. Allowed commands are %s.", *command, strings.Join(allowedCommands, ", "))
+	if _, ok := cfg.Ai.Commands[*command]; !ok {
+		allowedCommands := make([]string, 0, len(cfg.Ai.Commands))
+		for cmd := range cfg.Ai.Commands {
+			allowedCommands = append(allowedCommands, cmd)
+		}
+		logger.Fatalf("Invalid command: %s. Allowed commands are %s.", *command, strings.Join(allowedCommands, ", "))
 	}
-	
+
 	// Create a GitHub Issues instance. From now on, you can control GitHub from this instance.
 	issue := github.NewIssue(*owner, *repo, *issueNumber, *gh_token)
 	if issue == nil {
@@ -74,6 +75,7 @@ func main() {
 	user_prompt += "Body:" + *body + "\n"
 
 	// Get comments under the Issue and add them to the user prompt except for comments by Actions.
+	images := []ai.Image{}
 	comments, err := issue.GetComments()
 	if err != nil {
 		logger.Fatalf("Error getting comments: %v", err)
@@ -86,31 +88,45 @@ func main() {
 			logger.Printf("%s: %s", *v.User.Login, *v.Body)
 		}
 		user_prompt += *v.User.Login + ":" + *v.Body + "\n"
+
+		// Get image
+		imageRegex := regexp.MustCompile(`!\[(.*?)\]\((.*?)\)`) // Get URL from ![alt](url)
+		matches := imageRegex.FindAllStringSubmatch(*v.Body, -1)
+		for _, match := range matches {
+			logger.Println(match[2]) // Output the URL of the image
+			image_url, ext, err := utils.DownloadImage(match[2], *gh_token)
+			if err != nil {
+				logger.Fatalf("Error downloading image: %s", err)
+				return
+			}
+
+			images = append(images, ai.Image{Data: image_url, Extension: ext})
+		}
 	}
 
 	// Set system prompt
 	var system_prompt string
-    if *command == "ask" {
-        if *intent == "" {
-            logger.Println("Error: intent is required for 'ask' command")
+	if *command == "ask" {
+		if *intent == "" {
+			logger.Println("Error: intent is required for 'ask' command")
 			flag.PrintDefaults()
 			os.Exit(1)
-        }
-        system_prompt = cfg.Ai.Commands[*command].System_prompt + *intent + "\n"
-    } else {
-        system_prompt = cfg.Ai.Commands[*command].System_prompt
-    }
-	prompt := ai.Prompt{UserPrompt: user_prompt, SystemPrompt: system_prompt}
+		}
+		system_prompt = cfg.Ai.Commands[*command].System_prompt + *intent + "\n"
+	} else {
+		system_prompt = cfg.Ai.Commands[*command].System_prompt
+	}
+	prompt := ai.Prompt{UserPrompt: user_prompt, SystemPrompt: system_prompt, Images: images}
 	logger.Println("\x1b[34mPrompt: |\n", prompt.SystemPrompt, prompt.UserPrompt, "\x1b[0m")
 
 	// Get response from OpenAI or VertexAI
 	var aic ai.Ai
 	if cfg.Ai.Provider == "openai" {
 		if *oai_key == "" {
-            logger.Println("Error: Please provide your Open AI API key.")
+			logger.Println("Error: Please provide your Open AI API key.")
 			flag.PrintDefaults()
 			os.Exit(1)
-        }
+		}
 		aic = ai.NewOpenAIClient(*oai_key, cfg.Ai.OpenAI.Model)
 		logger.Println("Using OpenAI API")
 		logger.Println("OpenAI model:", cfg.Ai.OpenAI.Model)
@@ -121,7 +137,7 @@ func main() {
 	}
 
 	comment, _ := aic.GetResponse(prompt)
-	logger.Println("Response:", comment)
+	logger.Println("\x1b[32mResponse:", comment, "\x1b[0m")
 
 	// Post a comment on the Issue
 	err = issue.PostComment(comment)
