@@ -26,7 +26,7 @@ func main() {
 	)
 	flag.Parse()
 
-	if *repo == "" || *owner == "" || *issueNumber == 0 || *gh_token == "" || *oai_key == "" || *command == "" || *configFile == "" {
+	if *repo == "" || *owner == "" || *issueNumber == 0 || *gh_token == "" || *command == "" || *configFile == "" {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
@@ -112,16 +112,21 @@ func main() {
 			flag.PrintDefaults()
 			os.Exit(1)
 		}
-		system_prompt = cfg.Ai.Commands[*command].System_prompt + *intent
+		system_prompt = cfg.Ai.Commands[*command].System_prompt + *intent + "\n"
 	} else {
 		system_prompt = cfg.Ai.Commands[*command].System_prompt
 	}
-	prompt := ai.Prompt{UserPrompt: user_prompt, SystemPrompt: system_prompt, Images: images}
-	logger.Println("\x1b[34mPrompt: |\n", prompt.SystemPrompt, prompt.UserPrompt, "\x1b[0m + ", len(prompt.Images), "images")
+	prompt := ai.Prompt{UserPrompt: user_prompt, SystemPrompt: system_prompt}
+	logger.Println("\x1b[34mPrompt: |\n", prompt.SystemPrompt, prompt.UserPrompt, "\x1b[0m")
 
 	// Get response from OpenAI or VertexAI
 	var aic ai.Ai
 	if cfg.Ai.Provider == "openai" {
+		if *oai_key == "" {
+			logger.Println("Error: Please provide your Open AI API key.")
+			flag.PrintDefaults()
+			os.Exit(1)
+		}
 		aic = ai.NewOpenAIClient(*oai_key, cfg.Ai.OpenAI.Model)
 		logger.Println("Using OpenAI API")
 		logger.Println("OpenAI model:", cfg.Ai.OpenAI.Model)
