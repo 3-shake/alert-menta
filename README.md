@@ -1,46 +1,86 @@
 # alert-menta
-An innovative tool 🚀 for real-time analysis and management of Issues' alerts. 🔍 It identifies alert causes, proposes actionable solutions 💡, and offers customizable filters 🎛️ and detailed reports 📈. Designed for developers 👨‍💻, managers 📋, and IT teams 💻, AlertMenta enhances productivity and software quality. 🌟
+An innovative tool 🚀 for real-time analysis and management of Issues' alerts. 🔍 It identifies alert causes, proposes actionable solutions, 💡and detailed reports. 📈
+Designed for developers 👨‍💻, managers 📋, and IT teams .💻 Alert-menta enhances productivity and software quality. 🌟
 
-## Run Locally
+## Overview of alert-menta
+### The purpose of alert-menta
+We reduce the burden of system failure response using LLM.
+### Main Features
+You can receive support for failure handling that is completed within GitHub.
+- Execute interactive commands for monitoring alerts notified by GitHub Issues or reports from users:
+  - `describe` command to summarize the Issue
+  - `analysis` command for root cause analysis of failures (in development)
+  - `suggest` command for proposing improvement measures for failures
+  - `ask` command for asking additional questions
+- Mechanism to improve response accuracy using [RAG](https://cloud.google.com/use-cases/retrieval-augmented-generation?hl=en) (in development)
+- Selectable LLM models (OpenAI, VertexAI)
+- Extensible prompt text
+  - Multilingual support
+
+## How to Use
+alert-menta is intended to be run on GitHub Actions.
+### 1. Prepare GitHub PAT
+Prepare a GitHub PAT with the following permissions and register it in Secrets:
+- repo
+- workflow
+### 2. Configure to use LLM
+#### Open AI
+Generate an API key and register it in Secrets.
+#### Vertex AI
+Enable Vertex AI on Google Cloud.
+alert-menta obtains access to VertexAI using [Workload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation). Please see [here](#if-using-vertex-ai) for details.
+### 3. Create the alert-menta configuration file
+Create the alert-menta configuration file in the root of the repository. For details, please see [here](#alert-mentauseryaml).
+### 4. Create the Actions configuration file
+There is a [template](#template) available, so please use it.
+### 5. Monitoring alerts or user reports are received on Issues
+For the method to bring monitoring alerts to Issues, please see [this repository](https://github.com/kechigon/alert-menta-lab/tree/main).
+### 6. Execute alert-menta
+Execute commands on the Issue. Run commands with a backslash at the beginning (e.g., `/describe`). For the `ask` command, leave a space and enter the question (e.g., `/ask What about the Next Action?`). alert-menta includes the text of the Issue in the prompt and sends it to the LLM, then posts the response as a comment on the Issue.
+
+## Configuration
+### .alert-menta.user.yaml
+It contains information such as the LLM model to use, system prompt text for each command, etc. The `.alert-menta.user.yaml` in this repository is a template. The contents are as follows:
 ```
-go run ./cmd/main.go -owner <owner> -issue <issue-number> -repo <repository> -github-token $GITHUB_TOKEN -api-key $OPENAI_API_KEY -command <describe or improve> -config <User_defined_config_file>
+system:
+  debug:
+    log_level: debug
+ai:
+  provider: "openai" # "openai" or "vertexai"
+  openai:
+    model: "gpt-3.5-turbo" # Check the list of available models by curl https://api.openai.com/v1/models -H "Authorization: Bearer $OPENAI_API_KEY"
+  vertexai:
+    project: "<YOUR_PROJECT_ID>"
+    location: "us-central1"
+    model: "gemini-1.5-flash-001"
+  commands:
+    - describe:
+        description: "Generate a detailed description of the Issue."
+        system_prompt: "The following is the GitHub Issue and comments on it. Please Generate a detailed description.\n"
+    - suggest:
+        description: "Provide suggestions for improvement based on the contents of the Issue."
+        system_prompt: "The following is the GitHub Issue and comments on it. Please identify the issues that need to be resolved based on the contents of the Issue and provide three suggestions for improvement.\n"
+    - ask:
+        description: "Answer free-text questions."
+        system_prompt: "The following is the GitHub Issue and comments on it. Based on the content, provide a detailed response to the following question:\n"
 ```
-
-## Setup to run as the GitHub Actions
-### Get Tokens
-
-1. Set up a token by following the instructions [here](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
-    1. Grant access to the repository where you want to implement Alert-Menta.
-    2. Set the Repository Permissions as follows:
-        - Actions: Read and write
-        - Content: Read and write
-        - Metadata: Read-only
-        - Pull requests: Read and write
-
-### Add the secrets to your repository
-Register the following environment variables as Secrets in the GitHub repository.
+Specify the LLM to use with `ai.provider`.
+You can change the system prompt with `commands.{command}.system_prompt`.
+### Actions
+#### Template
+The `.github/workflows/alert-menta.yaml` in this repository is a template. The contents are as follows:
 ```
-GH_TOKEN = <your-github-token>
-OPENAI_API_KEY = <your-openai-api-key>
-```
-
-### Create Actions file
-Create an action file in your repository as `.github/workflows/alert-menta.yaml` with the following contents.
-``` yaml
-name: "Alert-Menta: Reacts to specific labels"
-run-name: ${{ GITHUB_REPOSITORY }} LLM responds to issues against the repository.🚀
+name: "Alert-Menta: Reacts to specific commands"
+run-name: LLM responds to issues against the repository.:rocket:
 
 on:
-  issues:
-    types: [labeled] # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#issues
   issue_comment:
     types: [created]
 
 jobs:
   Alert-Menta:
-    if: (contains(github.event.issue.labels.*.name, '/describe') && startsWith(github.event.comment.body, '/describe')) ||
-      (contains(github.event.issue.labels.*.name, '/improve') && startsWith(github.event.comment.body, '/improve')) # https://docs.github.com/ja/webhooks/webhook-events-and-payloads#issues
-    runs-on: ubuntu-22.04 # https://docs.github.com/ja/actions/using-jobs/choosing-the-runner-for-a-job
+    if: startsWith(github.event.comment.body, '/describe') || startsWith(github.event.comment.body, '/suggest') || startsWith(github.event.comment.body, '/ask')
+    runs-on: ubuntu-22.04
     permissions:
       issues: write
       contents: read
@@ -52,65 +92,47 @@ jobs:
         run: |
           curl -sLJO -H 'Accept: application/octet-stream' \
           "https://${{ secrets.GH_TOKEN }}@api.github.com/repos/3-shake/alert-menta/releases/assets/$( \
-          curl -sL "https://${{ secrets.GH_TOKEN }}@api.github.com/repos/3-shake/alert-menta/releases/tags/v0.0.1" \
+          curl -sL "https://${{ secrets.GH_TOKEN }}@api.github.com/repos/3-shake/alert-menta/releases/tags/v0.0.4" \
           | jq '.assets[] | select(.name | contains("Linux_x86")) | .id')"
           tar -zxvf alert-menta_Linux_x86_64.tar.gz
-      
-      - name: Set Command describe
-        id: describe
-        if: contains(github.event.issue.labels.*.name, '/describe')
+
+      - name: Set Command
+        id: set_command
         run: |
-          echo "COMMAND=describe" >> $GITHUB_ENV
-      - name: Set Command improve
-        id: improve
-        if: steps.describe.conclusion == 'skipped' || contains(github.event.issue.labels.*.name, '/improve')
-        run: |
-          echo "COMMAND=improve" >> $GITHUB_ENV
+          COMMENT_BODY="${{ github.event.comment.body }}"
+          if [[ "$COMMENT_BODY" == /ask* ]]; then
+            COMMAND=ask
+            INTENT=${COMMENT_BODY:5}
+            echo "INTENT=$INTENT" >> $GITHUB_ENV
+          elif [[ "$COMMENT_BODY" == /describe* ]]; then
+            COMMAND=describe
+          elif [[ "$COMMENT_BODY" == /suggest* ]]; then
+            COMMAND=suggest
+          fi
+          echo "COMMAND=$COMMAND" >> $GITHUB_ENV
+
       - run: echo "REPOSITORY_NAME=${GITHUB_REPOSITORY#${GITHUB_REPOSITORY_OWNER}/}" >> $GITHUB_ENV
 
       - name: Get user defined config file
         id: user_config
         if: hashFiles('.alert-menta.user.yaml') != ''
         run: |
-          echo "CONFIG_FILE=.alert-menta.user.yaml" >> $GITHUB_ENV
-      - name: Get default config file
-        if: steps.user_config.conclusion == 'skipped' && hashFiles('./internal/config/config.yaml') != ''
-        run: |
-          echo "CONFIG_FILE=./internal/config/config.yaml" >> $GITHUB_ENV
+          curl -H "Authorization: token ${{ secrets.GH_TOKEN }}" -L -o .alert-menta.user.yaml "https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ env.REPOSITORY_NAME }}/main/.alert-menta.user.yaml" && echo "CONFIG_FILE=./.alert-menta.user.yaml" >> $GITHUB_ENV
 
       - name: Add Comment
         run: |
-          ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -github-token ${{ secrets.GITHUB_TOKEN }} -api-key ${{ secrets.OPENAI_API_KEY }} -command $COMMAND -config $CONFIG_FILE
-
+          if [[ "$COMMAND" == "ask" ]]; then
+            ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -github-token ${{ secrets.GH_TOKEN }} -api-key ${{ secrets.OPENAI_API_KEY }} -command $COMMAND -config $CONFIG_FILE -intent "$INTENT"
+          else
+            ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -github-token ${{ secrets.GH_TOKEN }} -api-key ${{ secrets.OPENAI_API_KEY }} -command $COMMAND -config $CONFIG_FILE
+          fi
 ```
-
-### Create User defined config file (Optional)
-If the user wishes to change the behavior or model for each command, a user-defined configuration file can be written.  
-Create a `.alert-menta.user.yaml` file directly under the repository and describe the settings according to the following properties.
-
-```yaml
-system:
-  debug: 
-    mode: True
-    log_level: debug
-
-github:
-  owner: "<owner>"
-  repo: "<repository>"
-
-ai:
-  model: "gpt-3.5-turbo" # Check the list of available models by `curl https://api.openai.com/v1/models -H "Authorization: Bearer $OPENAI_API_KEY"`
-  
-  commands:
-    - describe:
-        description: "Describe the GitHub Issues"
-        system_prompt: "System prompt for your configured /describe command"
-    - improve:
-        description: "Improve the GitHub Issues"
-        system_prompt: "System prompt for your configured /describe command"
+#### If using Vertex AI
+Configure Workload Identity Federation with reference to the [documentation](https://cloud.google.com/iam/docs/workload-identity-federation-with-deployment-pipelines).
+## Local
+In an environment where Golang can be executed, clone the repository and run it as follows:
 ```
-
-## Run as GitHub Actions
-1. Label `/describe` or `/improve` on the relevant Issues.
-2. Post a comment with the command corresponding to the added label (e.g., in an Issue with the /improve label, commenting "/improve" will fire the GitHub Actions).
-3. Actions are fired and comments by LLM are posted a few seconds later.
+go run ./cmd/main.go -repo <repository> -owner <owner> -issue <issue-number> -github-token $GITHUB_TOKEN -api-key $OPENAI_API_KEY -command <describe, etc.> -config <User_defined_config_file>
+```
+## Contribution
+We welcome you.
