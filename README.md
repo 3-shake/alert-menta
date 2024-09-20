@@ -18,7 +18,7 @@ You can receive support for failure handling that is completed within GitHub.
   - Multilingual support
 
 ## How to Use
-alert-menta is intended to be run on GitHub Actions.
+Alert-menta is intended to be run on GitHub Actions.
 ### 1. Prepare GitHub PAT
 Prepare a GitHub PAT with the following permissions and register it in Secrets:
 - repo
@@ -28,7 +28,7 @@ Prepare a GitHub PAT with the following permissions and register it in Secrets:
 Generate an API key and register it in Secrets.
 #### Vertex AI
 Enable Vertex AI on Google Cloud.
-alert-menta obtains access to VertexAI using [Workload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation). Please see [here](#if-using-vertex-ai) for details.
+Alert-menta obtains access to VertexAI using [Workload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation). Please see [here](#if-using-vertex-ai) for details.
 ### 3. Create the alert-menta configuration file
 Create the alert-menta configuration file in the root of the repository. For details, please see [here](#alert-mentauseryaml).
 ### 4. Create the Actions configuration file
@@ -36,7 +36,7 @@ There is a [template](#template) available, so please use it.
 ### 5. Monitoring alerts or user reports are received on Issues
 For the method to bring monitoring alerts to Issues, please see [this repository](https://github.com/kechigon/alert-menta-lab/tree/main).
 ### 6. Execute alert-menta
-Execute commands on the Issue. Run commands with a backslash at the beginning (e.g., `/describe`). For the `ask` command, leave a space and enter the question (e.g., `/ask What about the Next Action?`). alert-menta includes the text of the Issue in the prompt and sends it to the LLM, then posts the response as a comment on the Issue.
+Execute commands on the Issue. Run commands with a backslash at the beginning (e.g., `/describe`). For the `ask` command, leave a space and enter the question (e.g., `/ask What about the Next Action?`). Alert-menta includes the text of the Issue in the prompt and sends it to the LLM, then posts the response as a comment on the Issue.
 
 ## Configuration
 ### .alert-menta.user.yaml
