@@ -7,7 +7,7 @@ Designed for developers 👨‍💻, managers 📋, and IT teams .💻 Alert-men
 We reduce the burden of system failure response using LLM.
 ### Main Features
 You can receive support for failure handling that is completed within GitHub.
-- Execute commands interactively in response to GitHub Issue notifications such as monitoring alerts and user reports:
+- Execute commands interactively in GitHub Issue comments:
   - `describe` command to summarize the Issue
   - `analysis` command for root cause analysis of failures (in development)
   - `suggest` command for proposing improvement measures for failures
