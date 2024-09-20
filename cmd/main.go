@@ -92,9 +92,7 @@ func main() {
 	var system_prompt string
     if *command == "ask" {
         if *intent == "" {
-            logger.Println("Error: intent is required for 'ask' command")
-			flag.PrintDefaults()
-			os.Exit(1)
+            logger.Fatalf("Error: intent is required for 'ask' command")
         }
         system_prompt = cfg.Ai.Commands[*command].System_prompt + *intent + "\n"
     } else {
@@ -107,17 +105,17 @@ func main() {
 	var aic ai.Ai
 	if cfg.Ai.Provider == "openai" {
 		if *oai_key == "" {
-            logger.Println("Error: Please provide your Open AI API key.")
-			flag.PrintDefaults()
-			os.Exit(1)
+            logger.Fatalf("Error: Please provide your Open AI API key.")
         }
 		aic = ai.NewOpenAIClient(*oai_key, cfg.Ai.OpenAI.Model)
 		logger.Println("Using OpenAI API")
 		logger.Println("OpenAI model:", cfg.Ai.OpenAI.Model)
-	} else {
+	} else if cfg.Ai.Provider == "vertexai"{
 		aic = ai.NewVertexAIClient(cfg.Ai.VertexAI.Project, cfg.Ai.VertexAI.Region, cfg.Ai.VertexAI.Model)
 		logger.Println("Using VertexAI API")
 		logger.Println("VertexAI model:", cfg.Ai.VertexAI.Model)
+	} else {
+		logger.Fatalf("Error: Invalid provider")
 	}
 
 	comment, _ := aic.GetResponse(prompt)
