@@ -94,13 +94,13 @@ func main() {
 		matches := imageRegex.FindAllStringSubmatch(*v.Body, -1)
 		for _, match := range matches {
 			logger.Println(match[2]) // Output the URL of the image
-			image_url, ext, err := utils.DownloadImage(match[2], *gh_token)
+			img_data, ext, err := utils.DownloadImage(match[2], *gh_token)
 			if err != nil {
 				logger.Fatalf("Error downloading image: %s", err)
 				return
 			}
 
-			images = append(images, ai.Image{Data: image_url, Extension: ext})
+			images = append(images, ai.Image{Data: img_data, Extension: ext})
 		}
 	}
 
