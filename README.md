@@ -71,7 +71,7 @@ You can change the system prompt with `commands.{command}.system_prompt`.
 The `.github/workflows/alert-menta.yaml` in this repository is a template. The contents are as follows:
 ```
 name: "Alert-Menta: Reacts to specific commands"
-run-name: LLM responds to issues against the repository.:rocket:
+run-name: LLM responds to issues against the repository.🚀
 
 on:
   issue_comment:
@@ -79,7 +79,7 @@ on:
 
 jobs:
   Alert-Menta:
-    if: startsWith(github.event.comment.body, '/describe') || startsWith(github.event.comment.body, '/suggest') || startsWith(github.event.comment.body, '/ask')
+    if: (startsWith(github.event.comment.body, '/describe') || startsWith(github.event.comment.body, '/suggest') || startsWith(github.event.comment.body, '/ask')) && (github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
     runs-on: ubuntu-22.04
     permissions:
       issues: write
@@ -92,7 +92,7 @@ jobs:
         run: |
           curl -sLJO -H 'Accept: application/octet-stream' \
           "https://${{ secrets.GH_TOKEN }}@api.github.com/repos/3-shake/alert-menta/releases/assets/$( \
-          curl -sL "https://${{ secrets.GH_TOKEN }}@api.github.com/repos/3-shake/alert-menta/releases/tags/v0.0.4" \
+          curl -sL "https://${{ secrets.GH_TOKEN }}@api.github.com/repos/3-shake/alert-menta/releases/tags/v0.1.0" \
           | jq '.assets[] | select(.name | contains("Linux_x86")) | .id')"
           tar -zxvf alert-menta_Linux_x86_64.tar.gz
 
