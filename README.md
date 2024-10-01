@@ -1,3 +1,4 @@
+![logo](https://github.com/3-shake/alert-menta/blob/main/logo.png?raw=true)
 # alert-menta
 An innovative tool 🚀 for real-time analysis and management of Issues' alerts. 🔍 It identifies alert causes, proposes actionable solutions, 💡and detailed reports. 📈
 Designed for developers 👨‍💻, managers 📋, and IT teams .💻 Alert-menta enhances productivity and software quality. 🌟
