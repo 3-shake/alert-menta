@@ -23,7 +23,7 @@ func main() {
 		gh_token    = flag.String("github-token", "", "GitHub token")
 		oai_key     = flag.String("api-key", "", "OpenAI api key")
 	)
-	flag.Parse()
+		flag.Parse()
 
 	if *repo == "" || *owner == "" || *issueNumber == 0 || *gh_token == "" || *command == "" || *configFile == "" {
 		flag.PrintDefaults()
