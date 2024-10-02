@@ -1,0 +1,11 @@
+linters:
+  disable-all: true
+  enable:
+    - govet
+    - gofmt
+    - staticcheck
+    - errcheck
+    - ineffassign
+    - deadcode
+    - unused
+    - gosimple
