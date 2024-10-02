@@ -136,3 +136,4 @@ go run ./cmd/main.go -repo <repository> -owner <owner> -issue <issue-number> -gi
 ```
 ## Contribution
 We welcome you.
+Please submit pull requests to the develop branch.
