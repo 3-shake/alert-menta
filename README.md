@@ -136,4 +136,4 @@ go run ./cmd/main.go -repo <repository> -owner <owner> -issue <issue-number> -gi
 ```
 ## Contribution
 We welcome you.
-Please submit pull requests to the develop branch.
+Please submit pull requests to the develop branch. See [Branch strategy](https://github.com/3-shake/alert-menta/wiki/Branch-strategy) for more information.
