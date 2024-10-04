@@ -6,6 +6,5 @@ linters:
     - staticcheck
     - errcheck
     - ineffassign
-    - deadcode
     - unused
     - gosimple
