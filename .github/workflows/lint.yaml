@@ -25,8 +25,12 @@ jobs:
 
       - name: Install golangci-lint
         run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.61.0
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.61.0
 
-      - name: Run golangci-lint
+      - name: Install reviewdog
         run: |
-          golangci-lint run ./...
+          go install github.com/reviewdog/reviewdog/cmd/reviewdog@latest
+
+      - name: Run golangci-lint with reviewdog
+        run: |
+          golangci-lint run --out-format=line-number | reviewdog -f=golangci-lint -reporter=github-check
