@@ -10,24 +10,23 @@ on:
       - develop
       - main
 
-    jobs:
-      build:
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-        runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-        steps:
-        - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.22.2
 
-        - name: Set up Go
-          uses: actions/setup-go@v5
-          with:
-            go-version: 1.22.2
+      - name: Install dependencies
+        run: go mod tidy
 
-        - name: Install dependencies
-          run: go mod tidy
+      - name: Build
+        run: go build ./...
 
-        - name: Build
-          run: go build ./...
-
-        - name: Run tests
-          run: go test ./... -v
+      - name: Run tests
+        run: go test ./... -v
