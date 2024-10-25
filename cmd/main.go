@@ -39,7 +39,7 @@ func main() {
 	// Load configuration
 	cfg, err := utils.NewConfig(*configFile)
 	if err != nil {
-		logger.Fatalf("Error creating comment: %s", err)
+		logger.Fatalf("Error Loading config: %v", err)
 	}
 
 	// Validate command
@@ -118,7 +118,10 @@ func main() {
 		logger.Fatalf("Error: Invalid provider")
 	}
 
-	comment, _ := aic.GetResponse(prompt)
+	comment, err := aic.GetResponse(prompt)
+	if err != nil {
+		logger.Fatalf("Error getting Response: %v", err)
+	}
 	logger.Println("Response:", comment)
 
 	// Post a comment on the Issue
