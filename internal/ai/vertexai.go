@@ -16,7 +16,8 @@ type VertexAI struct {
 
 func (ai *VertexAI) GetResponse(prompt Prompt) (string, error) {
 	model := ai.client.GenerativeModel(ai.model)
-	model.SetTemperature(0.9)
+	//Temperature recommended by LLM
+	model.SetTemperature(0.5)
 
 	resp, err := model.GenerateContent(ai.context, genai.Text(prompt.SystemPrompt+prompt.UserPrompt))
 	if err != nil {
