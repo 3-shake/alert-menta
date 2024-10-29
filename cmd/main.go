@@ -127,6 +127,6 @@ func main() {
 	// Post a comment on the Issue
 	err = issue.PostComment(comment)
 	if err != nil {
-		logger.Fatalf("Error creating comment: %s", err)
+		logger.Fatalf("Error creating comment: %v", err)
 	}
 }
