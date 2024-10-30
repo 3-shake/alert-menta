@@ -62,7 +62,7 @@ func (gh *GitHubIssues) PostComment(commentBody string) error {
 	comment := &github.IssueComment{Body: github.String(commentBody)}
 	_, _, err := gh.client.Issues.CreateComment(gh.ctx, gh.owner, gh.repo, gh.issueNumber, comment)
 	if err != nil {
-		gh.logger.Fatalf("Error creating comment: %s", err)
+		gh.logger.Fatalf("Error creating comment: %v", err)
 	}
 	gh.logger.Printf("Comment created successfully on Issue %d", gh.issueNumber)
 	return err

@@ -12,7 +12,6 @@ import (
 type Config struct {
 	System System `yaml:"system"`
 	Ai     Ai     `yaml:"ai"`
-	Github Github `yaml:"github"`
 }
 
 type Test struct {
@@ -25,7 +24,6 @@ type System struct {
 }
 
 type SystemDebug struct {
-	Mode      bool   `yaml:"mode"`
 	Log_level string `yaml:"log_level"`
 }
 
@@ -37,14 +35,8 @@ type Ai struct {
 }
 
 type Command struct {
-	// Name          string `yaml:"name"`
 	Description   string `yaml:"description"`
 	System_prompt string `yaml:"system_prompt"`
-}
-
-type Github struct {
-	Owner string `yaml:"owner"`
-	Repo  string `yaml:"repo"`
 }
 
 type OpenAI struct {
@@ -66,6 +58,7 @@ func NewConfig(filename string) (*Config, error) {
 
 	// Get the directory and file name from variable filename
 	dir, file := filepath.Split(filename)
+	// Extract base part and extension part
 	base, ext := filepath.Base(file)[:len(filepath.Base(file))-len(filepath.Ext(file))], filepath.Ext(file)[1:]
 
 	// Read the config file
@@ -74,14 +67,14 @@ func NewConfig(filename string) (*Config, error) {
 	viper.AddConfigPath(dir)
 	err := viper.ReadInConfig()
 	if err != nil {
-		logger.Fatalf("Error reading config file, %s", err)
+		logger.Fatalf("Error reading config file, %v", err)
 	}
 
 	// Unmarshal the config file
 	cfg := new(Config)
 	err = viper.Unmarshal(cfg)
 	if err != nil {
-		logger.Fatalf("Error unmarshal read config, %s", err)
+		logger.Fatalf("Error unmarshal read config, %v", err)
 		return nil, err
 	}
 
