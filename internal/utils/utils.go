@@ -14,11 +14,6 @@ type Config struct {
 	Ai     Ai     `yaml:"ai"`
 }
 
-type Test struct {
-	Mode bool   `yaml:"mode"`
-	Name string `yaml:"name"`
-}
-
 type System struct {
 	Debug SystemDebug `yaml:"debug"`
 }
