@@ -9,7 +9,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type GitHubIssues struct {
+type GitHubIssue struct {
 	owner       string
 	repo        string
 	issueNumber int
@@ -20,7 +20,7 @@ type GitHubIssues struct {
 	logger      *log.Logger
 }
 
-func (gh *GitHubIssues) GetIssue() (*github.Issue, error) {
+func (gh *GitHubIssue) GetIssue() (*github.Issue, error) {
 	// Only the first call retrieves information from GitHub, all other calls use cache
 	if gh.cache == nil {
 		issue, _, err := gh.client.Issues.Get(gh.ctx, gh.owner, gh.repo, gh.issueNumber)
@@ -32,7 +32,7 @@ func (gh *GitHubIssues) GetIssue() (*github.Issue, error) {
 	return gh.cache, nil
 }
 
-func (gh *GitHubIssues) GetBody() (*string, error) {
+func (gh *GitHubIssue) GetBody() (*string, error) {
 	issue, err := gh.GetIssue()
 	if err != nil {
 		return nil, err
@@ -40,7 +40,7 @@ func (gh *GitHubIssues) GetBody() (*string, error) {
 	return issue.Body, err
 }
 
-func (gh *GitHubIssues) GetTitle() (*string, error) {
+func (gh *GitHubIssue) GetTitle() (*string, error) {
 	issue, err := gh.GetIssue()
 	if err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func (gh *GitHubIssues) GetTitle() (*string, error) {
 	return issue.Title, err
 }
 
-func (gh *GitHubIssues) GetComments() ([]*github.IssueComment, error) {
+func (gh *GitHubIssue) GetComments() ([]*github.IssueComment, error) {
 	// Options
 	opt := &github.IssueListCommentsOptions{Direction: "asc", Sort: "created"}
 	opt.Page = 1
@@ -58,7 +58,7 @@ func (gh *GitHubIssues) GetComments() ([]*github.IssueComment, error) {
 	return comments, err
 }
 
-func (gh *GitHubIssues) PostComment(commentBody string) error {
+func (gh *GitHubIssue) PostComment(commentBody string) error {
 	comment := &github.IssueComment{Body: github.String(commentBody)}
 	_, _, err := gh.client.Issues.CreateComment(gh.ctx, gh.owner, gh.repo, gh.issueNumber, comment)
 	if err != nil {
@@ -68,7 +68,7 @@ func (gh *GitHubIssues) PostComment(commentBody string) error {
 	return err
 }
 
-func NewIssue(owner string, repo string, issueNumber int, token string) *GitHubIssues {
+func NewIssue(owner string, repo string, issueNumber int, token string) *GitHubIssue {
 	// Create GitHub client with OAuth2 token
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
@@ -83,7 +83,7 @@ func NewIssue(owner string, repo string, issueNumber int, token string) *GitHubI
 		log.Ldate|log.Ltime|log.Llongfile|log.Lmsgprefix,
 	)
 
-	// Create a new GitHubIssues instance
-	issue := &GitHubIssues{owner: owner, repo: repo, issueNumber: issueNumber, token: token, client: client, ctx: ctx, logger: logger}
+	// Create a new GitHubIssue instance
+	issue := &GitHubIssue{owner: owner, repo: repo, issueNumber: issueNumber, token: token, client: client, ctx: ctx, logger: logger}
 	return issue
 }
