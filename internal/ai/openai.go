@@ -13,7 +13,7 @@ type OpenAI struct {
 	model  string
 }
 
-func (ai *OpenAI) GetResponse(prompt Prompt) (string, error) {
+func (ai *OpenAI) GetResponse(prompt *Prompt) (string, error) {
 	// Create a new OpenAI client
 	keyCredential := azcore.NewKeyCredential(ai.apiKey)
 	client, _ := azopenai.NewClientForOpenAI("https://api.openai.com/v1/", keyCredential, nil)
