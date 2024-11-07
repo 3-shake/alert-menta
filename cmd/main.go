@@ -51,7 +51,7 @@ func main() {
         logger.Fatalf("Error loading config: %v", err)
     }
 
-    err = validateCommand(cfg.command, loadedcfg, logger)
+    err = validateCommand(cfg.command, loadedcfg)
     if err != nil {
         logger.Fatalf("Error validating command: %v", err)
     }
@@ -85,7 +85,7 @@ func main() {
 }
 
 // Validate the provided command
-func validateCommand(command string, cfg *utils.Config, logger *log.Logger) error {
+func validateCommand(command string, cfg *utils.Config) error {
     if _, ok := cfg.Ai.Commands[command]; !ok {
         allowedCommands := make([]string, 0, len(cfg.Ai.Commands))
         for cmd := range cfg.Ai.Commands {
@@ -156,7 +156,11 @@ func getAIClient(oaiKey string, cfg *utils.Config, logger *log.Logger) (ai.Ai, e
     case "vertexai":
         logger.Println("Using VertexAI API")
         logger.Println("VertexAI model:", cfg.Ai.VertexAI.Model)
-        return ai.NewVertexAIClient(cfg.Ai.VertexAI.Project, cfg.Ai.VertexAI.Region, cfg.Ai.VertexAI.Model), nil
+        aic, err := ai.NewVertexAIClient(cfg.Ai.VertexAI.Project, cfg.Ai.VertexAI.Region, cfg.Ai.VertexAI.Model)
+        if err != nil {
+            return nil, fmt.Errorf("Error: new Vertex AI client: %w", err)
+        }
+        return aic, nil
     default:
         return nil, fmt.Errorf("Error: Invalid provider")
     }

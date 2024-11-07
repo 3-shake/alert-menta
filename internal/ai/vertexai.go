@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"reflect"
+	"fmt"
 
 	"cloud.google.com/go/vertexai/genai"
 )
@@ -40,16 +41,16 @@ func getResponseText(resp *genai.GenerateContentResponse) string {
 	return result
 }
 
-func NewVertexAIClient(projectID, localtion, modelName string) *VertexAI {
+func NewVertexAIClient(projectID, localtion, modelName string) (*VertexAI, error) {
 	// Secret is provided in json and PATH is specified in the environment variable `GOOGLE_APPLICATION_CREDENTIALS`.
 	ctx := context.Background()
 	client, err := genai.NewClient(ctx, projectID, localtion)
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("new client error: %w", err)
 	}
 	return &VertexAI{
 		context: ctx,
 		client:  client,
 		model:   modelName,
-	}
+	}, nil
 }
