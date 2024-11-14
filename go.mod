@@ -4,7 +4,7 @@ go 1.22.2
 
 require (
 	cloud.google.com/go/vertexai v0.12.0
-	github.com/Azure/azure-sdk-for-go/sdk/ai/azopenai v0.5.1
+	github.com/Azure/azure-sdk-for-go/sdk/ai/azopenai v0.7.1
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.16.0
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/spf13/viper v1.19.0
@@ -49,12 +49,12 @@ require (
 	go.opentelemetry.io/otel/trace v1.24.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
-	golang.org/x/crypto v0.27.0 // indirect
+	golang.org/x/crypto v0.28.0 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
-	golang.org/x/net v0.29.0 // indirect
+	golang.org/x/net v0.30.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.25.0 // indirect
-	golang.org/x/text v0.18.0 // indirect
+	golang.org/x/sys v0.26.0 // indirect
+	golang.org/x/text v0.19.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/api v0.183.0 // indirect
 	google.golang.org/genproto v0.0.0-20240528184218-531527333157 // indirect
