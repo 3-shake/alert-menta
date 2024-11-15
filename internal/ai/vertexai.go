@@ -24,7 +24,7 @@ func (ai *VertexAI) GetResponse(prompt *Prompt) (string, error) {
 	for _, image := range prompt.Images {
 		integrated_prompt = append(integrated_prompt, genai.ImageData(image.Extension, image.Data))
 	}
-	integrated_prompt = append(integrated_prompt, genai.Text(prompt.SystemPrompt　+　prompt.UserPrompt))
+	integrated_prompt = append(integrated_prompt, genai.Text(prompt.SystemPrompt + prompt.UserPrompt))
 
 	// Generate AI response
 	resp, err := model.GenerateContent(ai.context, integrated_prompt...)

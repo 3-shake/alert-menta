@@ -59,7 +59,7 @@ func main() {
 
     issue := github.NewIssue(cfg.owner, cfg.repo, cfg.issueNumber, cfg.ghToken)
 
-    userPrompt, imgs, err := constructUserPrompt(issue, loadedcfg, logger)
+    userPrompt, imgs, err := constructUserPrompt(cfg.ghToken, issue, loadedcfg, logger)
     if err != nil {
         logger.Fatalf("Erro constructing userPrompt: %v", err)
     }
@@ -98,7 +98,7 @@ func validateCommand(command string, cfg *utils.Config) error {
 }
 
 // Construct user prompt from issue
-func constructUserPrompt(issue *github.GitHubIssue, cfg *utils.Config, logger *log.Logger) (string, []ai.Image, error) {
+func constructUserPrompt(ghToken string, issue *github.GitHubIssue, cfg *utils.Config, logger *log.Logger) (string, []ai.Image, error) {
     title, err := issue.GetTitle()
     if err != nil {
         return "", nil, fmt.Errorf("Error getting Title: %w", err)
@@ -130,10 +130,10 @@ func constructUserPrompt(issue *github.GitHubIssue, cfg *utils.Config, logger *l
         }
         userPrompt.WriteString(*v.User.Login + ":" + *v.Body + "\n")
 
-		matches := imageRegex.FindAllStringSubmatch(*comment.Body, -1)
+		matches := imageRegex.FindAllStringSubmatch(*v.Body, -1)
         for _, match := range matches {
             logger.Println("Image URL:", match[2]) // Log the URL of the image
-            imgData, ext, err := utils.DownloadImage(match[2], *ghToken)
+            imgData, ext, err := utils.DownloadImage(match[2], ghToken)
             if err != nil {
                 return "", nil, fmt.Errorf("Error downloading image: %w", err)
             }
@@ -156,7 +156,7 @@ func constructPrompt(command, intent, userPrompt string, imgs []ai.Image, cfg *u
         systemPrompt = cfg.Ai.Commands[command].System_prompt
     }
     logger.Println("\x1b[34mPrompt: |\n", systemPrompt, userPrompt, "\x1b[0m")
-    return &ai.Prompt{UserPrompt: userPrompt, SystemPrompt: systemPrompt, Images: images}, nil
+    return &ai.Prompt{UserPrompt: userPrompt, SystemPrompt: systemPrompt, Images: imgs}, nil
 }
 
 // Initialize AI client
