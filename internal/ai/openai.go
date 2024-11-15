@@ -39,7 +39,7 @@ func (ai *OpenAI) GetResponse(prompt *Prompt) (string, error) {
 	// Create a chat request with the prompt
 	messages := []azopenai.ChatRequestMessageClassification{
 		&azopenai.ChatRequestSystemMessage{
-			Content: &prompt.SystemPrompt,
+			Content: azopenai.NewChatRequestSystemMessageContent(prompt.SystemPrompt),
 		},
 		&azopenai.ChatRequestUserMessage{
 			Content: azopenai.NewChatRequestUserMessageContent(user_prompt),
