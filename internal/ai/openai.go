@@ -14,7 +14,7 @@ type OpenAI struct {
 	model  string
 }
 
-func (ai *OpenAI) GetResponse(prompt Prompt) (string, error) {
+func (ai *OpenAI) GetResponse(prompt *Prompt) (string, error) {
 	// Create a new OpenAI client
 	keyCredential := azcore.NewKeyCredential(ai.apiKey)
 	client, _ := azopenai.NewClientForOpenAI("https://api.openai.com/v1/", keyCredential, nil)
@@ -52,8 +52,7 @@ func (ai *OpenAI) GetResponse(prompt Prompt) (string, error) {
 		Messages:       messages,
 	}, nil)
 	if err != nil {
-		fmt.Printf("ChatCompletion error: %v\n", err)
-		return "", err
+		return "", fmt.Errorf("ChatCompletion error: %w", err)
 	}
 
 	// Print the response
@@ -64,12 +63,6 @@ func (ai *OpenAI) GetResponse(prompt Prompt) (string, error) {
 }
 
 func NewOpenAIClient(apiKey string, model string) *OpenAI {
-	// Set the OpenAI API key (read from the environment variable)
-	if apiKey == "" {
-		fmt.Println("Error: OPENAI_API_KEY environment variable not set.")
-		return nil
-	}
-
 	// Specifying the model to use
 	return &OpenAI{
 		apiKey: apiKey,
