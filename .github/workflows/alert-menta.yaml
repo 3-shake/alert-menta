@@ -47,7 +47,6 @@ jobs:
         run: |
           curl -H "Authorization: token ${{ secrets.GH_TOKEN }}" -L -o .alert-menta.user.yaml "https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ env.REPOSITORY_NAME }}/main/.alert-menta.user.yaml" && echo "CONFIG_FILE=./.alert-menta.user.yaml" >> $GITHUB_ENV
 
-      - run: cat .alert-menta.user.yaml
       - name: Add Comment
         run: |
           if [[ "$COMMAND" == "ask" ]]; then
