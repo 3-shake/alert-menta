@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+    "github.com/3-shake/alert-menta/internal/ai"
     "github.com/3-shake/alert-menta/internal/utils"
 )
 
@@ -54,17 +55,18 @@ func TestConstructPrompt(t *testing.T) {
         command   string
         intent    string
         userPrompt string
+        imgs       []ai.Image
         expectErr bool
         expectedSystemPrompt string
     }{
-        {"Valid Ask Command with Intent", "ask", "What is the first thing to work on in suggestions?", "userPrompt", false, "Ask system prompt: What is the first thing to work on in suggestions?\n"},
-        {"Ask Command without Intent", "ask", "", "userPrompt", true, ""},
-        {"Valid Other Command", "other", "", "userPrompt", false, "Other system prompt: "},
+        {"Valid Ask Command with Intent", "ask", "What is the first thing to work on in suggestions?", "userPrompt", []ai.Image{}, false, "Ask system prompt: What is the first thing to work on in suggestions?\n"},
+        {"Ask Command without Intent", "ask", "", "userPrompt", []ai.Image{}, true, ""},
+        {"Valid Other Command", "other", "", "userPrompt", []ai.Image{}, false, "Other system prompt: "},
     }
 
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
-            prompt, err := constructPrompt(tt.command, tt.intent, tt.userPrompt, mockCfg, logger)
+            prompt, err := constructPrompt(tt.command, tt.intent, tt.userPrompt, tt.imgs, mockCfg, logger)
             if (err != nil) != tt.expectErr {
                 t.Errorf("expected error: %v, got error %v", tt.expectErr, err)
             }
