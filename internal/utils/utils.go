@@ -1,9 +1,15 @@
 package utils
 
 import (
+	"encoding/base64"
+	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -12,12 +18,6 @@ import (
 type Config struct {
 	System System `yaml:"system"`
 	Ai     Ai     `yaml:"ai"`
-	Github Github `yaml:"github"`
-}
-
-type Test struct {
-	Mode bool   `yaml:"mode"`
-	Name string `yaml:"name"`
 }
 
 type System struct {
@@ -25,7 +25,6 @@ type System struct {
 }
 
 type SystemDebug struct {
-	Mode      bool   `yaml:"mode"`
 	Log_level string `yaml:"log_level"`
 }
 
@@ -37,14 +36,8 @@ type Ai struct {
 }
 
 type Command struct {
-	// Name          string `yaml:"name"`
 	Description   string `yaml:"description"`
 	System_prompt string `yaml:"system_prompt"`
-}
-
-type Github struct {
-	Owner string `yaml:"owner"`
-	Repo  string `yaml:"repo"`
 }
 
 type OpenAI struct {
@@ -66,6 +59,7 @@ func NewConfig(filename string) (*Config, error) {
 
 	// Get the directory and file name from variable filename
 	dir, file := filepath.Split(filename)
+	// Extract base part and extension part
 	base, ext := filepath.Base(file)[:len(filepath.Base(file))-len(filepath.Ext(file))], filepath.Ext(file)[1:]
 
 	// Read the config file
@@ -74,18 +68,74 @@ func NewConfig(filename string) (*Config, error) {
 	viper.AddConfigPath(dir)
 	err := viper.ReadInConfig()
 	if err != nil {
-		logger.Fatalf("Error reading config file, %s", err)
+		logger.Fatalf("Error reading config file, %v", err)
 	}
 
 	// Unmarshal the config file
 	cfg := new(Config)
 	err = viper.Unmarshal(cfg)
 	if err != nil {
-		logger.Fatalf("Error unmarshal read config, %s", err)
+		logger.Fatalf("Error unmarshal read config, %v", err)
 		return nil, err
 	}
 
 	// Print the config
 	logger.Println("Config:", cfg)
 	return cfg, nil
+}
+
+func DownloadImage(url string, token string) ([]byte, string, error) {
+	// Create a new HTTP client
+	client := &http.Client{
+		Timeout: 15 * time.Second,
+	}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return []byte{}, "", fmt.Errorf("failed to create a new request: %w", err)
+	}
+
+	// Download the image with the token
+	req.Header.Set("Authorization", "Bearer "+token) // set token to header
+	resp, err := client.Do(req)
+	if err != nil {
+		return []byte{}, "", fmt.Errorf("failed to get a response: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Write the response body to the temporary file
+	file, err := os.CreateTemp("", "downloaded-image-*")
+	if err != nil {
+		return []byte{}, "", fmt.Errorf("failed to create a temporary file: %w", err)
+	}
+	defer func() {
+		log.Println("remove", file.Name(), "Content-Type:", resp.Header.Get("Content-Type"))
+		file.Close()
+		os.Remove(file.Name())
+	}()
+	_, err = io.Copy(file, resp.Body)
+	if err != nil {
+		return []byte{}, "", fmt.Errorf("failed to write the response body to the temporary file: %w", err)
+	}
+
+	// Read image data from the temporary file
+	data, err := os.ReadFile(file.Name())
+	if err != nil {
+		return []byte{}, "", fmt.Errorf("failed to read the file: %w", err)
+	}
+
+	// Get the extension of the image
+	contentType := resp.Header.Get("Content-Type")
+	imageRegex := regexp.MustCompile(`.+/(.*)`)
+	matches := imageRegex.FindAllStringSubmatch(contentType, -1)
+	if len(matches) == 0 {
+		return []byte{}, "", fmt.Errorf("failed to get the extension of the image")
+	}
+	ext := matches[0][1]
+
+	return data, ext, nil
+}
+
+func ImageToBase64(data []byte, ext string) string {
+	base64img := base64.StdEncoding.EncodeToString(data)
+	return "data:image/" + ext + ";base64," + base64img
 }
