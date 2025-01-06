@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/3-shake/alert-menta/internal/utils"
 	"github.com/Azure/azure-sdk-for-go/sdk/ai/azopenai"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 )
@@ -18,10 +19,30 @@ func (ai *OpenAI) GetResponse(prompt *Prompt) (string, error) {
 	keyCredential := azcore.NewKeyCredential(ai.apiKey)
 	client, _ := azopenai.NewClientForOpenAI("https://api.openai.com/v1/", keyCredential, nil)
 
+	// Convert images to base64
+	base64Images := func(images []Image) []string {
+		var base64Images []string
+		for _, image := range images {
+			base64Images = append(base64Images, utils.ImageToBase64(image.Data, image.Extension))
+		}
+		return base64Images
+	}(prompt.Images)
+
+	// create a user prompt with text and images
+	user_prompt := []azopenai.ChatCompletionRequestMessageContentPartClassification{
+		&azopenai.ChatCompletionRequestMessageContentPartText{Text: &prompt.UserPrompt},
+	}
+	for _, image := range base64Images {
+		user_prompt = append(user_prompt, &azopenai.ChatCompletionRequestMessageContentPartImage{ImageURL: &azopenai.ChatCompletionRequestMessageContentPartImageURL{URL: &image}})
+	}
+
 	// Create a chat request with the prompt
 	messages := []azopenai.ChatRequestMessageClassification{
+		&azopenai.ChatRequestSystemMessage{
+			Content: azopenai.NewChatRequestSystemMessageContent(prompt.SystemPrompt),
+		},
 		&azopenai.ChatRequestUserMessage{
-			Content: azopenai.NewChatRequestUserMessageContent(prompt.SystemPrompt + prompt.UserPrompt),
+			Content: azopenai.NewChatRequestUserMessageContent(user_prompt),
 		},
 	}
 

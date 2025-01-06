@@ -2,9 +2,9 @@ package ai
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"reflect"
-	"fmt"
 
 	"cloud.google.com/go/vertexai/genai"
 )
@@ -20,7 +20,14 @@ func (ai *VertexAI) GetResponse(prompt *Prompt) (string, error) {
 	//Temperature recommended by LLM
 	model.SetTemperature(0.5)
 
-	resp, err := model.GenerateContent(ai.context, genai.Text(prompt.SystemPrompt + prompt.UserPrompt))
+	integrated_prompt := []genai.Part{} // image + text prompt
+	for _, image := range prompt.Images {
+		integrated_prompt = append(integrated_prompt, genai.ImageData(image.Extension, image.Data))
+	}
+	integrated_prompt = append(integrated_prompt, genai.Text(prompt.SystemPrompt+prompt.UserPrompt))
+
+	// Generate AI response
+	resp, err := model.GenerateContent(ai.context, integrated_prompt...)
 	if err != nil {
 		log.Fatal(err)
 		return "", err
@@ -43,6 +50,7 @@ func getResponseText(resp *genai.GenerateContentResponse) string {
 
 func NewVertexAIClient(projectID, localtion, modelName string) (*VertexAI, error) {
 	// Secret is provided in json and PATH is specified in the environment variable `GOOGLE_APPLICATION_CREDENTIALS`.
+	// If you are using gcloud cli authentication or workload identity federation, you do not need to specify the secret json file.
 	ctx := context.Background()
 	client, err := genai.NewClient(ctx, projectID, localtion)
 	if err != nil {

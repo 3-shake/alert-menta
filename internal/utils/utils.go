@@ -1,9 +1,15 @@
 package utils
 
 import (
+	"encoding/base64"
+	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -76,4 +82,60 @@ func NewConfig(filename string) (*Config, error) {
 	// Print the config
 	logger.Println("Config:", cfg)
 	return cfg, nil
+}
+
+func DownloadImage(url string, token string) ([]byte, string, error) {
+	// Create a new HTTP client
+	client := &http.Client{
+		Timeout: 15 * time.Second,
+	}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return []byte{}, "", fmt.Errorf("failed to create a new request: %w", err)
+	}
+
+	// Download the image with the token
+	req.Header.Set("Authorization", "Bearer "+token) // set token to header
+	resp, err := client.Do(req)
+	if err != nil {
+		return []byte{}, "", fmt.Errorf("failed to get a response: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Write the response body to the temporary file
+	file, err := os.CreateTemp("", "downloaded-image-*")
+	if err != nil {
+		return []byte{}, "", fmt.Errorf("failed to create a temporary file: %w", err)
+	}
+	defer func() {
+		log.Println("remove", file.Name(), "Content-Type:", resp.Header.Get("Content-Type"))
+		file.Close()
+		os.Remove(file.Name())
+	}()
+	_, err = io.Copy(file, resp.Body)
+	if err != nil {
+		return []byte{}, "", fmt.Errorf("failed to write the response body to the temporary file: %w", err)
+	}
+
+	// Read image data from the temporary file
+	data, err := os.ReadFile(file.Name())
+	if err != nil {
+		return []byte{}, "", fmt.Errorf("failed to read the file: %w", err)
+	}
+
+	// Get the extension of the image
+	contentType := resp.Header.Get("Content-Type")
+	imageRegex := regexp.MustCompile(`.+/(.*)`)
+	matches := imageRegex.FindAllStringSubmatch(contentType, -1)
+	if len(matches) == 0 {
+		return []byte{}, "", fmt.Errorf("failed to get the extension of the image")
+	}
+	ext := matches[0][1]
+
+	return data, ext, nil
+}
+
+func ImageToBase64(data []byte, ext string) string {
+	base64img := base64.StdEncoding.EncodeToString(data)
+	return "data:image/" + ext + ";base64," + base64img
 }
