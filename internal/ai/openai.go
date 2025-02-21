@@ -69,3 +69,7 @@ func NewOpenAIClient(apiKey string, model string) *OpenAI {
 		model:  model,
 	}
 }
+
+func (ai *OpenAI) GetEmbedding(text string) ([]float32, error) {
+	return nil, nil
+}
