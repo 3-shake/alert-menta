@@ -7,7 +7,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/ai/azopenai v0.7.1
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.16.0
 	github.com/google/go-github v17.0.0+incompatible
-	github.com/neo4j/neo4j-go-driver/v4 v4.4.7
+	github.com/neo4j/neo4j-go-driver/v5 v5.27.0
 	github.com/spf13/viper v1.19.0
 	golang.org/x/oauth2 v0.24.0
 )
