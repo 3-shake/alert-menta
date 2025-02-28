@@ -62,3 +62,7 @@ func NewVertexAIClient(projectID, localtion, modelName string) (*VertexAI, error
 		model:   modelName,
 	}, nil
 }
+
+func (ai *VertexAI) GetEmbedding(text string) ([]float32, error) {
+	return nil, nil
+}
