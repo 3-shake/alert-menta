@@ -1,8 +1,6 @@
 package rag
 
 import (
-	"context"
-
 	"github.com/3-shake/alert-menta/internal/ai"
 )
 
@@ -21,4 +19,9 @@ type Document struct {
 	Id      string
 	Content string
 	Score   float64
+}
+
+func (d Document) String() string {
+	str := "id: " + d.Id + ", content: " + d.Content
+	return str
 }
