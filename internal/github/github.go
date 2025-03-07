@@ -87,3 +87,35 @@ func NewIssue(owner string, repo string, issueNumber int, token string) *GitHubI
 	issue := &GitHubIssue{owner: owner, repo: repo, issueNumber: issueNumber, token: token, client: client, ctx: ctx, logger: logger}
 	return issue
 }
+
+func GetAllIssues(owner, repo, token string) []*GitHubIssue {
+	// Create GitHub client with OAuth2 token
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: token},
+	)
+	tc := oauth2.NewClient(ctx, ts)
+	client := github.NewClient(tc)
+
+	opt := &github.IssueListByRepoOptions{
+		State:       "all",                            // "open", "closed", "all" (デフォルトは "open")
+		ListOptions: github.ListOptions{PerPage: 100}, // 1ページあたりのIssue数(最大100)
+	}
+
+	var allIssues []*GitHubIssue
+	for {
+		issues, resp, err := client.Issues.ListByRepo(ctx, owner, repo, opt)
+		if err != nil {
+			log.Fatal(err)
+		}
+		for _, issue := range issues {
+			allIssues = append(allIssues, NewIssue(owner, repo, *issue.Number, token))
+		}
+		// allIssues = append(allIssues, issues...)
+		if resp.NextPage == 0 {
+			break // 次のページがなければ終了
+		}
+		opt.ListOptions.Page = resp.NextPage // 次のページの番号をセット
+	}
+	return allIssues
+}
