@@ -170,6 +170,8 @@ func (r *Neo4jRetriever) runCypher(query string, params map[string]interface{}) 
 			Id:      id,
 			Content: content,
 			Score:   score,
+			URL:     "", // Temporary placeholder for URL
+			Branch:  "", // Temporary placeholder for Branch
 		})
 	}
 	fmt.Println(len(documents))

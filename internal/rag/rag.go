@@ -6,7 +6,8 @@ import (
 
 type Retriever interface {
 	// Retrieve(ctx context.Context, query string, options ...Option) ([]Document, error)
-	Retrieve(embedding ai.EmbeddingModel, options Options) ([]Document, error)
+	Retrieve(query string, embedding ai.EmbeddingModel, options Options) ([]Document, error)
+	RetrieveByVector(vector []float32, options Options) ([]Document, error)
 }
 
 type Options struct {
@@ -18,6 +19,8 @@ type Options struct {
 type Document struct {
 	Id      string
 	Content string
+	Branch  string
+	URL     string
 	Score   float64
 }
 

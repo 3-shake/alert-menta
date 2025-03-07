@@ -1,11 +1,8 @@
 package rag
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 
 	// "github.com/joho/godotenv"
 	"github.com/3-shake/alert-menta/internal/ai"
@@ -15,12 +12,6 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-type PineconeClient struct {
-	context   context.Context
-	pc        *pinecone.Client
-	indexName string
-}
-
 type Issue struct {
 	Id      string
 	Url     string
@@ -28,24 +19,6 @@ type Issue struct {
 	Title   string
 	State   string
 	// Source  string
-}
-
-func prettifyStruct(obj interface{}) string {
-	bytes, _ := json.MarshalIndent(obj, "", "  ")
-	return string(bytes)
-}
-
-func NewPineconeClient(indexName string) *PineconeClient {
-	ctx := context.Background()
-
-	pc, err := pinecone.NewClient(pinecone.NewClientParams{
-		ApiKey: os.Getenv("PINECONE_API_KEY"),
-	})
-
-	if err != nil {
-		log.Fatalf("Failed to create Client: %v", err)
-	}
-	return &PineconeClient{context: ctx, pc: pc, indexName: indexName}
 }
 
 func (pc *PineconeClient) TestUpsert(metadataMap map[string]interface{}, vector []float32) {
@@ -57,7 +30,7 @@ func (pc *PineconeClient) TestUpsert(metadataMap map[string]interface{}, vector 
 		log.Fatalf("Failed to describe index \"%v\": %v", indexName, err)
 	}
 
-	idxConnection, err := pc.pc.Index(pinecone.NewIndexConnParams{Host: idxModel.Host, Namespace: "bug"})
+	idxConnection, err := pc.pc.Index(pinecone.NewIndexConnParams{Host: idxModel.Host, Namespace: "issues"})
 	if err != nil {
 		log.Fatalf("Failed to create IndexConnection1 for Host %v: %v", idxModel.Host, err)
 	}
@@ -81,22 +54,12 @@ func (pc *PineconeClient) TestUpsert(metadataMap map[string]interface{}, vector 
 	}
 }
 
-func (pc *PineconeClient) convertStructtoMap(issue Issue) map[string]interface{} {
-	return map[string]interface{}{
-		"id":      issue.Id,
-		"content": issue.Content,
-		"title":   issue.Title,
-		"url":     issue.Url,
-		"state":   issue.State,
-	}
-}
-
 func (pc *PineconeClient) RetrieveIssue(vector []float32) string {
 	idxModel, err := pc.pc.DescribeIndex(pc.context, pc.indexName)
 	if err != nil {
 		log.Fatalf("Failed to describe index \"%v\": %v", pc.indexName, err)
 	}
-	idxConnection, err := pc.pc.Index(pinecone.NewIndexConnParams{Host: idxModel.Host, Namespace: "bug"})
+	idxConnection, err := pc.pc.Index(pinecone.NewIndexConnParams{Host: idxModel.Host, Namespace: "issues"})
 	if err != nil {
 		log.Fatalf("Failed to create IndexConnection1 for Host %v: %v", idxModel.Host, err)
 	}
@@ -119,17 +82,18 @@ func (pc *PineconeClient) RetrieveIssue(vector []float32) string {
 }
 
 func (pc *PineconeClient) UpsertIssuesWithStruct(issues []Issue, vectors [][]float32) error {
+	nameSpace := "issues"
 	idxModel, err := pc.pc.DescribeIndex(pc.context, pc.indexName)
 	if err != nil {
 		log.Fatalf("Failed to describe index \"%v\": %v", pc.indexName, err)
 	}
-	idxConnection, err := pc.pc.Index(pinecone.NewIndexConnParams{Host: idxModel.Host, Namespace: "bug"})
+	idxConnection, err := pc.pc.Index(pinecone.NewIndexConnParams{Host: idxModel.Host, Namespace: nameSpace})
 	if err != nil {
 		log.Fatalf("Failed to create IndexConnection1 for Host %v: %v", idxModel.Host, err)
 	}
 	pcVectors := make([]*pinecone.Vector, len(issues))
 	for i, issue := range issues {
-		metadataMap := pc.convertStructtoMap(issue)
+		metadataMap := pc.convertIssueStructtoMap(issue)
 		metadata, err := structpb.NewStruct(metadataMap)
 		if err != nil {
 			log.Fatalf("Failed to create metadata map: %v", err)
@@ -156,7 +120,7 @@ func (pc *PineconeClient) UpsertIssue(id string, metadataMap map[string]interfac
 		log.Fatalf("Failed to describe index \"%v\": %v", pc.indexName, err)
 	}
 
-	idxConnection, err := pc.pc.Index(pinecone.NewIndexConnParams{Host: idxModel.Host, Namespace: "bug"})
+	idxConnection, err := pc.pc.Index(pinecone.NewIndexConnParams{Host: idxModel.Host, Namespace: "issues"})
 	if err != nil {
 		log.Fatalf("Failed to create IndexConnection1 for Host %v: %v", idxModel.Host, err)
 	}
@@ -183,16 +147,9 @@ func (pc *PineconeClient) UpsertIssue(id string, metadataMap map[string]interfac
 }
 
 func (pc *PineconeClient) UpsertIssueWithStruct(issue Issue, vector []float32) error {
-	metadataMap := pc.convertStructtoMap(issue)
+	metadataMap := pc.convertIssueStructtoMap(issue)
 	pc.UpsertIssue(issue.Id, metadataMap, vector)
 	return nil
-}
-
-func (pc *PineconeClient) DeleteIndex() {
-	err := pc.pc.DeleteIndex(pc.context, pc.indexName)
-	if err != nil {
-		log.Fatalf("Failed to delete index \"%v\": %v", pc.indexName, err)
-	}
 }
 
 // Query the index
@@ -205,7 +162,7 @@ func (pc *PineconeClient) GetSpecifiedData(id string) {
 		log.Fatalf("Failed to describe index \"%v\": %v", pc.indexName, err)
 	}
 
-	idxConnection, err := pc.pc.Index(pinecone.NewIndexConnParams{Host: idxModel.Host, Namespace: "bug"})
+	idxConnection, err := pc.pc.Index(pinecone.NewIndexConnParams{Host: idxModel.Host, Namespace: "issues"})
 	if err != nil {
 		log.Fatalf("Failed to create IndexConnection1 for Host %v: %v", idxModel.Host, err)
 	}
