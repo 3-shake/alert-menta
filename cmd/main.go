@@ -25,6 +25,7 @@ type Config struct {
 	ghToken     string
 	oaiKey      string
 	useRag      bool
+	pineconeKey string
 }
 
 type Neo4jConfig struct {
@@ -37,7 +38,7 @@ type Neo4jConfig struct {
 
 func main() {
 	cfg := &Config{}
-	neo4jcfg := &Neo4jConfig{}
+	// neo4jcfg := &Neo4jConfig{}
 	flag.StringVar(&cfg.repo, "repo", "", "Repository name")
 	flag.StringVar(&cfg.owner, "owner", "", "Repository owner")
 	flag.IntVar(&cfg.issueNumber, "issue", 0, "Issue number")
@@ -47,11 +48,7 @@ func main() {
 	flag.StringVar(&cfg.ghToken, "github-token", "", "GitHub token")
 	flag.StringVar(&cfg.oaiKey, "api-key", "", "OpenAI api key")
 	flag.BoolVar(&cfg.useRag, "use-rag", false, "Use RAG model for response generation")
-	flag.StringVar(&neo4jcfg.uri, "neo4j-uri", "", "Neo4j URI")
-	flag.StringVar(&neo4jcfg.username, "neo4j-username", "", "Neo4j username")
-	flag.StringVar(&neo4jcfg.password, "neo4j-password", "", "Neo4j password")
-	flag.StringVar(&neo4jcfg.fulltextIndex, "fulltext-index", "keyword", "Neo4j fulltext index(default: keyword)")
-	flag.StringVar(&neo4jcfg.vectorIndex, "vector-index", "vector", "Neo4j vector index(default: vector)")
+	flag.StringVar(&cfg.pineconeKey, "pinecone-api-key", "", "Pinecone api key")
 	flag.Parse()
 
 	if cfg.repo == "" || cfg.owner == "" || cfg.issueNumber == 0 || cfg.ghToken == "" || cfg.command == "" || cfg.configFile == "" {
@@ -59,24 +56,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	var retriever *rag.Neo4jRetriever
+	var retriever rag.Retriever
 	if cfg.useRag {
 		flag.Parse()
-		if neo4jcfg.uri == "" || neo4jcfg.username == "" || neo4jcfg.password == "" {
-			fmt.Println("if -useRag is set, neo4j-uri, neo4j-username, and neo4j-password are required")
-			fmt.Println("Usage: alert-menta -use-rag -neo4j-uri <uri> -neo4j-username <username> -neo4j-password <password>")
-			fmt.Println("[-fulltext-index <fulltext-index>] [-vector-index <vector-index>]")
+		if cfg.pineconeKey == "" {
+			fmt.Println("If -useRag is set, -pinecone-api-key is required")
 			os.Exit(1)
 		}
-		r, err := getNeo4jRetriever(neo4jcfg, log.New(os.Stdout, "[alert-menta main] ", log.Ldate|log.Ltime|log.Llongfile|log.Lmsgprefix))
+		// r, err := getNeo4jRetriever(neo4jcfg, log.New(os.Stdout, "[alert-menta main] ", log.Ldate|log.Ltime|log.Llongfile|log.Lmsgprefix))
+		r, err := getPineconeRetriever(cfg)
 		retriever = r
-		retriever.TestConnection()
 		if err != nil {
-			log.Fatalf("Error getting Neo4j retriever: %v", err)
+			log.Fatalf("Error getting retriever: %v", err)
 		}
 	}
-	fmt.Println("Neo4j Retriever:", retriever)
-	// os.Exit(0)
 
 	logger := log.New(
 		os.Stdout, "[alert-menta main] ",
@@ -109,27 +102,42 @@ func main() {
 	if err != nil {
 		logger.Fatalf("Error geting AI client: %v", err)
 	}
-
-	emb, err := getEmbeddingClient(cfg.oaiKey, loadedcfg, logger)
-	if err != nil {
-		logger.Fatalf("Error geting AI client: %v", err)
-	}
-	fmt.Println("Prompt:", prompt.UserPrompt)
-	doc, err := retriever.Retrieve(emb, prompt.UserPrompt, rag.Options{})
-	// doc, err := retriever.Retrieve(emb, "What is Memory Management?", rag.Options{})
-	if err != nil {
-		fmt.Println("Error retrieving document:", err)
-	}
-	fmt.Println("Document:", doc)
-	for _, d := range doc {
-		prompt.UserPrompt += "\n" + d.String()
-	}
-	fmt.Println("Prompt:", prompt.UserPrompt)
+	// idxName := rag.GetPineconeIndexName(cfg.owner, cfg.repo)
+	// tempCreateDB(idxName, cfg, loadedcfg, logger)
 	// os.Exit(0)
+
+	var docs []rag.Document
+	var relatedIssue string
+	if cfg.useRag {
+		emb, err := getEmbeddingClient(cfg.oaiKey, loadedcfg, logger)
+		if err != nil {
+			logger.Fatalf("Error geting AI client: %v", err)
+		}
+
+		ragPrompt, err := constructRAGPrompt(cfg.command, cfg.intent, userPrompt, imgs, *issue, loadedcfg, logger)
+		if err != nil {
+			logger.Fatalf("Error constructing RAG prompt: %v", err)
+		}
+		ragComment, err := aic.GetResponse(ragPrompt)
+		ragVector, err := emb.GetEmbedding(ragComment)
+		docs, err = retriever.RetrieveByVector(ragVector, rag.Options{})
+		for _, d := range docs {
+			prompt.UserPrompt += "\n" + d.String()
+		}
+		issueVector, err := emb.GetEmbedding(userPrompt)
+		relatedIssue = retriever.RetrieveIssue(issueVector)
+	}
 
 	comment, err := aic.GetResponse(prompt)
 	if err != nil {
 		logger.Fatalf("Error getting Response: %v", err)
+	}
+	if cfg.useRag {
+		comment += "\n\n" + "## Sources:\n"
+		for i, d := range docs {
+			comment += fmt.Sprintf("%d. [%s](%s)\n", i+1, d.Id, d.URL)
+		}
+		comment += "\n\n" + relatedIssue
 	}
 	logger.Println("Response:", comment)
 
@@ -212,6 +220,24 @@ func constructPrompt(command, intent, userPrompt string, imgs []ai.Image, cfg *u
 	return &ai.Prompt{UserPrompt: userPrompt, SystemPrompt: systemPrompt, Images: imgs}, nil
 }
 
+// RAG の前処理を行うプロンプトを作成する関数
+func constructRAGPrompt(command, intent, userPrompt string, imgs []ai.Image, issue github.GitHubIssue, cfg *utils.Config, logger *log.Logger) (*ai.Prompt, error) {
+	systemPrompt := "A GitHub Issue has been opened with the following content. Extract relevant information in a RAG. List files, functions, structures, etc. that should be checked. Also provide the file structure of your main branch to extract the information you need."
+	defaultBranch, _ := issue.GetDefaultBranch()
+	lf, _ := issue.ListFiles(defaultBranch)
+	lfs := strings.Join(lf, "\n")
+	if command == "ask" {
+		if intent == "" {
+			return nil, fmt.Errorf("Error: intent is required for 'ask' command")
+		}
+		systemPrompt = cfg.Ai.Commands[command].System_prompt + intent + "\n"
+	} else {
+		systemPrompt = cfg.Ai.Commands[command].System_prompt
+	}
+	logger.Println("\x1b[34mRAGPrompt: |\n", systemPrompt, userPrompt, "\x1b[0m")
+	return &ai.Prompt{UserPrompt: userPrompt + lfs, SystemPrompt: systemPrompt, Images: imgs}, nil
+}
+
 // Initialize AI client
 func getAIClient(oaiKey string, cfg *utils.Config, logger *log.Logger) (ai.Ai, error) {
 	switch cfg.Ai.Provider {
@@ -265,4 +291,36 @@ func getNeo4jRetriever(cfg *Neo4jConfig, logger *log.Logger) (*rag.Neo4jRetrieve
 		return nil, fmt.Errorf("Error: new Neo4jRetriever: %w", err)
 	}
 	return r, nil
+}
+
+// Initialize PineconeRetriever
+func getPineconeRetriever(cfg *Config) (*rag.PineconeClient, error) {
+	idxName := rag.GetPineconeIndexName(cfg.owner, cfg.repo)
+	r, err := rag.NewPineconeClient(idxName, cfg.pineconeKey)
+	if err != nil {
+		return nil, fmt.Errorf("Error: new Neo4jRetriever: %w", err)
+	}
+	return r, nil
+}
+
+func tempCreateDB(idxName string, cfg *Config, loadedcfg *utils.Config, logger *log.Logger) {
+	rootPath := "../GameAssistant"
+	paths, err := utils.GetAllFilesFromAllBranches(rootPath, []string{".git"}, []string{"main"})
+	var docs []rag.Document
+	for _, path := range paths {
+		doc, err := rag.ConvertPathtoDocument(cfg.owner, cfg.repo, path, rootPath)
+		if err == nil {
+			// continue
+			docs = append(docs, *doc)
+		}
+	}
+	fmt.Println("Number of documents:", len(docs))
+	emb, err := getEmbeddingClient(cfg.oaiKey, loadedcfg, logger)
+	if err != nil {
+		logger.Fatalf("Error geting AI client: %v", err)
+	}
+	pc, _ := rag.NewPineconeClient(idxName, cfg.pineconeKey)
+	pc.CreateCodebaseDB(docs, emb)
+	issues := github.GetAllIssues(cfg.owner, cfg.repo, cfg.ghToken)
+	pc.CreateIssueDB(issues, emb)
 }

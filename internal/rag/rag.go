@@ -8,6 +8,7 @@ type Retriever interface {
 	// Retrieve(ctx context.Context, query string, options ...Option) ([]Document, error)
 	Retrieve(query string, embedding ai.EmbeddingModel, options Options) ([]Document, error)
 	RetrieveByVector(vector []float32, options Options) ([]Document, error)
+	RetrieveIssue(vector []float32) string
 }
 
 type Options struct {

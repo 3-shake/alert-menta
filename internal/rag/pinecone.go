@@ -27,28 +27,31 @@ type PineconeClient struct {
 	indexName string
 }
 
-func GetIndexName(owner, repo string) string {
+func GetPineconeIndexName(owner, repo string) string {
 	indexName := owner + "-" + strings.ToLower(repo)
 	indexName = strings.ReplaceAll(indexName, "_", "-")
 	return indexName
 }
 
-func NewPineconeClient(indexName string) *PineconeClient {
+func NewPineconeClient(indexName, apiKey string) (*PineconeClient, error) {
 	ctx := context.Background()
 
 	pc, err := pinecone.NewClient(pinecone.NewClientParams{
-		ApiKey: os.Getenv("PINECONE_API_KEY"),
+		// ApiKey: os.Getenv("PINECONE_API_KEY"),
+		ApiKey: apiKey,
 	})
 
 	if err != nil {
-		log.Fatalf("Failed to create Client: %v", err)
+		// log.Fatalf("Failed to create Client: %v", err)
+		return nil, fmt.Errorf("Failed to create Client: %v", err)
 	}
 	pcClient := &PineconeClient{context: ctx, pc: pc, indexName: indexName}
 	err = pcClient.createIndex()
 	if err != nil {
-		log.Fatalf("Failed to create index \"%v\": %v", indexName, err)
+		// log.Fatalf("Failed to create index \"%v\": %v", indexName, err)
+		return nil, fmt.Errorf("Failed to create index \"%v\": %v", indexName, err)
 	}
-	return pcClient
+	return pcClient, nil
 }
 
 func ConvertPathtoDocument(owner, repo string, path utils.Path, root string) (*Document, error) {
@@ -110,7 +113,7 @@ func (pc *PineconeClient) RetrieveByVector(vector []float32, options Options) ([
 		log.Fatalf("Failed to describe index \"%v\": %v", pc.indexName, err)
 	}
 
-	if state, err := pc.waitUntilIndexReady(); state {
+	if state, err := pc.waitUntilIndexReady(); !state {
 		return nil, err
 	}
 
@@ -194,7 +197,7 @@ func (pc *PineconeClient) DeleteRecord(id string) error {
 		return err
 	}
 
-	if state, err := pc.waitUntilIndexReady(); state {
+	if state, err := pc.waitUntilIndexReady(); !state {
 		return err
 	}
 
@@ -238,7 +241,7 @@ func (pc *PineconeClient) UpsertWithStruct(docs []Document, vectors [][]float32)
 		log.Fatalf("Failed to describe index \"%v\": %v", pc.indexName, err)
 	}
 
-	if state, err := pc.waitUntilIndexReady(); state {
+	if state, err := pc.waitUntilIndexReady(); !state {
 		return err
 	}
 
