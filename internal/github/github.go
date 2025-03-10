@@ -2,8 +2,11 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"strings"
 
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
@@ -68,6 +71,34 @@ func (gh *GitHubIssue) PostComment(commentBody string) error {
 	return err
 }
 
+func (gh *GitHubIssue) GetDefaultBranch() (string, error) {
+	repoInfo, _, err := gh.client.Repositories.Get(gh.ctx, gh.owner, gh.repo)
+	return repoInfo.GetDefaultBranch(), err
+}
+
+// ListFiles lists all files in a specific branch of a GitHub repository.
+func (gh *GitHubIssue) ListFiles(branch string) ([]string, error) {
+	tree, response, err := gh.client.Git.GetTree(gh.ctx, gh.owner, gh.repo, branch, true)
+	if err != nil {
+		if response != nil && response.StatusCode == http.StatusForbidden {
+			if strings.Contains(response.Header.Get("Retry-After"), "s") {
+				return nil, fmt.Errorf("rate limited by GitHub API, recommended to use personal access token: %w", err)
+			}
+
+		}
+		return nil, fmt.Errorf("failed to get tree for branch %s: %w", branch, err)
+	}
+
+	var fileNames []string
+	for _, entry := range tree.Entries {
+		if entry.GetType() == "blob" {
+			fileNames = append(fileNames, entry.GetPath())
+		}
+	}
+
+	return fileNames, nil
+}
+
 func NewIssue(owner string, repo string, issueNumber int, token string) *GitHubIssue {
 	// Create GitHub client with OAuth2 token
 	ctx := context.Background()
@@ -98,8 +129,8 @@ func GetAllIssues(owner, repo, token string) []*GitHubIssue {
 	client := github.NewClient(tc)
 
 	opt := &github.IssueListByRepoOptions{
-		State:       "all",                            // "open", "closed", "all" (デフォルトは "open")
-		ListOptions: github.ListOptions{PerPage: 100}, // 1ページあたりのIssue数(最大100)
+		State:       "all",
+		ListOptions: github.ListOptions{PerPage: 100},
 	}
 
 	var allIssues []*GitHubIssue
@@ -113,9 +144,9 @@ func GetAllIssues(owner, repo, token string) []*GitHubIssue {
 		}
 		// allIssues = append(allIssues, issues...)
 		if resp.NextPage == 0 {
-			break // 次のページがなければ終了
+			break
 		}
-		opt.ListOptions.Page = resp.NextPage // 次のページの番号をセット
+		opt.ListOptions.Page = resp.NextPage
 	}
 	return allIssues
 }

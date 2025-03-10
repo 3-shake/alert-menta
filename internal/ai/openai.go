@@ -74,7 +74,7 @@ func (ai *OpenAI) GetEmbedding(text string) ([]float32, error) {
 	// Create a new OpenAI client
 	keyCredential := azcore.NewKeyCredential(ai.apiKey)
 	client, _ := azopenai.NewClientForOpenAI("https://api.openai.com/v1/", keyCredential, nil)
-	modelDeploymentID := "text-embedding-ada-002"
+	modelDeploymentID := "text-embedding-3-small"
 	options := &azopenai.EmbeddingsOptions{
 		Input:          []string{text},
 		DeploymentName: &modelDeploymentID,
@@ -84,7 +84,5 @@ func (ai *OpenAI) GetEmbedding(text string) ([]float32, error) {
 		fmt.Println(err)
 		return []float32{}, err
 	}
-	// fmt.Println(reflect.TypeOf(response))
-	// fmt.Println(response.Embeddings.Data[0].Embedding)
 	return response.Embeddings.Data[0].Embedding, nil
 }

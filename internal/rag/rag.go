@@ -11,9 +11,9 @@ type Retriever interface {
 }
 
 type Options struct {
-	topK                  int
-	withStructuredData    bool
-	enableHybridRetrieval bool
+	topK                  uint32
+	withStructuredData    bool // Not implemented yet
+	enableHybridRetrieval bool // Not implemented yet
 }
 
 type Document struct {

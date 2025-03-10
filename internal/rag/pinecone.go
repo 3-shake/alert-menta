@@ -7,6 +7,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/3-shake/alert-menta/internal/ai"
 	"github.com/3-shake/alert-menta/internal/utils"
@@ -25,6 +27,12 @@ type PineconeClient struct {
 	indexName string
 }
 
+func GetIndexName(owner, repo string) string {
+	indexName := owner + "-" + strings.ToLower(repo)
+	indexName = strings.ReplaceAll(indexName, "_", "-")
+	return indexName
+}
+
 func NewPineconeClient(indexName string) *PineconeClient {
 	ctx := context.Background()
 
@@ -35,7 +43,12 @@ func NewPineconeClient(indexName string) *PineconeClient {
 	if err != nil {
 		log.Fatalf("Failed to create Client: %v", err)
 	}
-	return &PineconeClient{context: ctx, pc: pc, indexName: indexName}
+	pcClient := &PineconeClient{context: ctx, pc: pc, indexName: indexName}
+	err = pcClient.createIndex()
+	if err != nil {
+		log.Fatalf("Failed to create index \"%v\": %v", indexName, err)
+	}
+	return pcClient
 }
 
 func ConvertPathtoDocument(owner, repo string, path utils.Path, root string) (*Document, error) {
@@ -60,20 +73,60 @@ func ConvertPathtoDocument(owner, repo string, path utils.Path, root string) (*D
 	}, nil
 }
 
-// func (pc *PineconeClient) Retrieve(embedding ai.EmbeddingModel, options Options) ([]Document, error) {
+func (pc *PineconeClient) createIndex() error {
+	_, err := pc.pc.DescribeIndex(pc.context, pc.indexName)
+	if err == nil {
+		return nil
+	}
+	metric := pinecone.Cosine
+	dimension := int32(1536)
+
+	_, err = pc.pc.CreateServerlessIndex(pc.context, &pinecone.CreateServerlessIndexRequest{
+		Name:      pc.indexName,
+		Cloud:     pinecone.Aws,
+		Region:    "us-east-1",
+		Metric:    &metric,
+		Dimension: &dimension,
+		Tags:      &pinecone.IndexTags{"environment": "development"},
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (pc *PineconeClient) Retrieve(query string, embedding ai.EmbeddingModel, options Options) ([]Document, error) {
+	emb, err := embedding.GetEmbedding(query)
+	if err != nil {
+		return nil, err
+	}
+	return pc.RetrieveByVector(emb, options)
+}
+
 func (pc *PineconeClient) RetrieveByVector(vector []float32, options Options) ([]Document, error) {
 	var docs []Document
 	idxModel, err := pc.pc.DescribeIndex(pc.context, pc.indexName)
 	if err != nil {
 		log.Fatalf("Failed to describe index \"%v\": %v", pc.indexName, err)
 	}
+
+	if state, err := pc.waitUntilIndexReady(); state {
+		return nil, err
+	}
+
 	idxConnection, err := pc.pc.Index(pinecone.NewIndexConnParams{Host: idxModel.Host, Namespace: "codebase"})
 	if err != nil {
 		log.Fatalf("Failed to create IndexConnection1 for Host %v: %v", idxModel.Host, err)
 	}
+
+	topK := options.topK
+	if topK == 0 {
+		topK = 3 // Default topK value
+	}
+
 	res, err := idxConnection.QueryByVectorValues(pc.context, &pinecone.QueryByVectorValuesRequest{
 		Vector:          vector,
-		TopK:            3,
+		TopK:            topK,
 		IncludeValues:   false,
 		IncludeMetadata: true,
 	})
@@ -140,6 +193,11 @@ func (pc *PineconeClient) DeleteRecord(id string) error {
 		log.Fatalf("Failed to describe index \"%v\": %v", pc.indexName, err)
 		return err
 	}
+
+	if state, err := pc.waitUntilIndexReady(); state {
+		return err
+	}
+
 	idxConnection, err := pc.pc.Index(pinecone.NewIndexConnParams{Host: idxModel.Host, Namespace: nameSpace})
 	if err != nil {
 		log.Fatalf("Failed to create IndexConnection1 for Host %v: %v", idxModel.Host, err)
@@ -160,8 +218,6 @@ func (pc *PineconeClient) CreateCodebaseDB(docs []Document, embedding ai.Embeddi
 	for _, doc := range docs {
 		// 1536 is the default embedding size for the Universal Sentence Encoder
 		vector, err := embedding.GetEmbedding(doc.Content)
-		// vector := make([]float32, 1536)
-		// var err error
 		if err != nil {
 			log.Fatalf("Error getting embedding: %v", err)
 		}
@@ -181,6 +237,11 @@ func (pc *PineconeClient) UpsertWithStruct(docs []Document, vectors [][]float32)
 	if err != nil {
 		log.Fatalf("Failed to describe index \"%v\": %v", pc.indexName, err)
 	}
+
+	if state, err := pc.waitUntilIndexReady(); state {
+		return err
+	}
+
 	idxConnection, err := pc.pc.Index(pinecone.NewIndexConnParams{Host: idxModel.Host, Namespace: nameSpace})
 	if err != nil {
 		log.Fatalf("Failed to create IndexConnection1 for Host %v: %v", idxModel.Host, err)
@@ -206,4 +267,29 @@ func (pc *PineconeClient) UpsertWithStruct(docs []Document, vectors [][]float32)
 		log.Printf("Successfully upserted %d vector(s)!\n", count)
 	}
 	return nil
+}
+
+// Referenced in https://github.com/pinecone-io/go-pinecone/blob/af29d07e7c68/pinecone/test_suite.go#L147
+func (pc *PineconeClient) waitUntilIndexReady() (bool, error) {
+	start := time.Now()
+	delay := 5 * time.Second
+	maxWaitTimeSeconds := 280 * time.Second
+
+	for {
+		index, err := pc.pc.DescribeIndex(pc.context, pc.indexName)
+
+		if index.Status.Ready && index.Status.State == "Ready" {
+			log.Printf("Index \"%s\" is ready after %f seconds\n", pc.indexName, time.Since(start).Seconds())
+			return true, err
+		}
+
+		totalSeconds := time.Since(start)
+
+		if totalSeconds >= maxWaitTimeSeconds {
+			return false, fmt.Errorf("Index \"%s\" not ready after %f seconds", pc.indexName, totalSeconds.Seconds())
+		}
+
+		log.Printf("Index \"%s\" not ready yet, retrying... (%f/%f)\n", pc.indexName, totalSeconds.Seconds(), maxWaitTimeSeconds.Seconds())
+		time.Sleep(delay)
+	}
 }
