@@ -12,6 +12,7 @@ import (
 
 	"github.com/3-shake/alert-menta/internal/ai"
 	"github.com/3-shake/alert-menta/internal/utils"
+	"github.com/go-git/go-git/v5"
 	"github.com/pinecone-io/go-pinecone/v3/pinecone"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -52,6 +53,43 @@ func NewPineconeClient(indexName, apiKey string) (*PineconeClient, error) {
 		return nil, fmt.Errorf("Failed to create index \"%v\": %v", indexName, err)
 	}
 	return pcClient, nil
+}
+
+func ConvertBranchtoDocuments(owner string, repo *git.Repository, branch utils.Branch) (*[]Document, error) {
+	var docs []Document
+	if err := utils.SwitchBranch(repo, branch.Name); err != nil {
+		fmt.Printf("Failed to switch branch: %v\n", err)
+	}
+	for _, file := range branch.Files {
+		content, err := utils.GetFileContent(repo, file)
+
+		if err != nil && len(content) == 0 {
+			continue
+		}
+		if err != nil {
+			fmt.Printf("Failed to get file content: %s, %v\n", content, err)
+			return nil, fmt.Errorf("Failed to get file content: %s@%s", branch.Name, file.Path)
+		}
+
+		// content のトークン数が 8192 以上の場合は分割する（とりあえずトークン数だけ切り取る）
+		n, err := ai.NumberofTokens(content)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to get number of tokens: %v", err)
+		}
+		if n > 8192 {
+			content = content[:8192]
+		}
+
+		docs = append(docs, Document{
+			Id:      branch.Name + "@" + file.Path,
+			Content: content,
+			Branch:  branch.Name,
+			URL:     fmt.Sprintf("https://github.com/%v/%v/blob/%v/%v", owner, repo, branch.Name, file.Path),
+			Score:   0,
+		})
+	}
+
+	return &docs, nil
 }
 
 func ConvertPathtoDocument(owner, repo string, path utils.Path, root string) (*Document, error) {
@@ -151,6 +189,46 @@ func (pc *PineconeClient) RetrieveByVector(vector []float32, options Options) ([
 	return docs, nil
 }
 
+func (pc *PineconeClient) QueryById(id string) (*Document, error) {
+	var doc *Document
+	idxModel, err := pc.pc.DescribeIndex(pc.context, pc.indexName)
+	if err != nil {
+		log.Fatalf("Failed to describe index \"%v\": %v", pc.indexName, err)
+	}
+
+	if state, err := pc.waitUntilIndexReady(); !state {
+		return nil, err
+	}
+
+	idxConnection, err := pc.pc.Index(pinecone.NewIndexConnParams{Host: idxModel.Host, Namespace: "codebase"})
+	if err != nil {
+		log.Fatalf("Failed to create IndexConnection1 for Host %v: %v", idxModel.Host, err)
+	}
+
+	res, err := idxConnection.QueryByVectorId(pc.context, &pinecone.QueryByVectorIdRequest{
+		VectorId:        id,
+		TopK:            1,
+		IncludeValues:   false,
+		IncludeMetadata: true,
+	})
+	if err != nil {
+		log.Fatalf("Error encountered when querying by vector: %v", err)
+	} else {
+		log.Printf(prettifyStruct(res))
+	}
+
+	tempDoc := res.Matches[0].Vector.Metadata.GetFields()
+	doc = &Document{
+		Id:      tempDoc["id"].GetStringValue(),
+		Content: tempDoc["content"].GetStringValue(),
+		Branch:  tempDoc["branch"].GetStringValue(),
+		URL:     tempDoc["url"].GetStringValue(),
+		Score:   0,
+	}
+
+	return doc, nil
+}
+
 func (pc *PineconeClient) convertIssueStructtoMap(issue Issue) map[string]interface{} {
 	return map[string]interface{}{
 		"id":      issue.Id,
@@ -222,14 +300,15 @@ func (pc *PineconeClient) CreateCodebaseDB(docs []Document, embedding ai.Embeddi
 		// 1536 is the default embedding size for the Universal Sentence Encoder
 		vector, err := embedding.GetEmbedding(doc.Content)
 		if err != nil {
-			log.Fatalf("Error getting embedding: %v", err)
+			return fmt.Errorf("Error getting embedding: %v", err) // MAX input length is 8192 in OpenAI
 		}
 		vectors = append(vectors, vector)
 	}
+	fmt.Println("vectors", vectors)
+	fmt.Println("docs", docs)
 	err := pc.UpsertWithStruct(docs, vectors)
 	if err != nil {
-		log.Fatalf("Error upserting docs: %v", err)
-		return err
+		return fmt.Errorf("Error upserting vectors: %v", err)
 	}
 	return nil
 }

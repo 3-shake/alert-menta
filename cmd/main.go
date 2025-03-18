@@ -81,6 +81,15 @@ func main() {
 		logger.Fatalf("Error loading config: %v", err)
 	}
 
+	if cfg.command == "upsert_db" {
+		idxName := rag.GetPineconeIndexName(cfg.owner, cfg.repo)
+		err := CreateDB(idxName, cfg, loadedcfg, logger)
+		if err != nil {
+			logger.Fatalf("Error upserting DB: %v", err)
+		}
+		return
+	}
+
 	err = validateCommand(cfg.command, loadedcfg)
 	if err != nil {
 		logger.Fatalf("Error validating command: %v", err)
@@ -102,9 +111,6 @@ func main() {
 	if err != nil {
 		logger.Fatalf("Error geting AI client: %v", err)
 	}
-	// idxName := rag.GetPineconeIndexName(cfg.owner, cfg.repo)
-	// tempCreateDB(idxName, cfg, loadedcfg, logger)
-	// os.Exit(0)
 
 	var docs []rag.Document
 	var relatedIssue string
@@ -303,24 +309,53 @@ func getPineconeRetriever(cfg *Config) (*rag.PineconeClient, error) {
 	return r, nil
 }
 
-func tempCreateDB(idxName string, cfg *Config, loadedcfg *utils.Config, logger *log.Logger) {
-	rootPath := "../GameAssistant"
-	paths, err := utils.GetAllFilesFromAllBranches(rootPath, []string{".git"}, []string{"main"})
-	var docs []rag.Document
-	for _, path := range paths {
-		doc, err := rag.ConvertPathtoDocument(cfg.owner, cfg.repo, path, rootPath)
-		if err == nil {
-			// continue
-			docs = append(docs, *doc)
-		}
+func CreateDB(idxName string, cfg *Config, loadedcfg *utils.Config, logger *log.Logger) error {
+	logger.Println("Creating DB to Index:", idxName)
+	repoURL := fmt.Sprintf("https://github.com/%s/%s", cfg.owner, cfg.repo)
+	repo, err := utils.CloneRepository(repoURL, &utils.AuthOptions{Username: cfg.owner, Token: cfg.ghToken})
+	if err != nil {
+		return fmt.Errorf("Error cloning repository: %w", err)
 	}
-	fmt.Println("Number of documents:", len(docs))
+	branches, err := utils.GetBranches(repo, []string{})
+	_, err = utils.ListFiles(repo)
+
+	var docs []rag.Document
+	for _, branch := range branches {
+		branchDocs, err := rag.ConvertBranchtoDocuments(cfg.owner, repo, branch)
+		if err != nil {
+			return fmt.Errorf("Error converting branch to documents: %w", err)
+		}
+		docs = append(docs, *branchDocs...)
+	}
+
 	emb, err := getEmbeddingClient(cfg.oaiKey, loadedcfg, logger)
 	if err != nil {
-		logger.Fatalf("Error geting AI client: %v", err)
+		return fmt.Errorf("Error getting embedding client: %w", err)
 	}
-	pc, _ := rag.NewPineconeClient(idxName, cfg.pineconeKey)
+
+	pc, err := rag.NewPineconeClient(idxName, cfg.pineconeKey)
+	if err != nil {
+		return fmt.Errorf("Error getting Pinecone client: %w", err)
+	}
+
+	/* Temporarily commented out because searching one by one in Pinecone takes too long
+	// get file content from Pinecone, compare with the new docs and add only the new docs
+	newDocs := []rag.Document{}
+	for _, doc := range docs {
+		// get file content from Pinecone
+		existedDoc, _ := pc.QueryById(doc.Id)
+		if existedDoc == nil {
+			newDocs = append(newDocs, doc)
+		} else if existedDoc.Content != doc.Content {
+			newDocs = append(newDocs, doc)
+		}
+	}
+	pc.CreateCodebaseDB(newDocs, emb)
+	*/
 	pc.CreateCodebaseDB(docs, emb)
+
 	issues := github.GetAllIssues(cfg.owner, cfg.repo, cfg.ghToken)
 	pc.CreateIssueDB(issues, emb)
+
+	return nil
 }

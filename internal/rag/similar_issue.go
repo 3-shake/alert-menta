@@ -21,39 +21,6 @@ type Issue struct {
 	// Source  string
 }
 
-func (pc *PineconeClient) TestUpsert(metadataMap map[string]interface{}, vector []float32) {
-	indexName := "similar-issues"
-	// Add to the main function:
-
-	idxModel, err := pc.pc.DescribeIndex(pc.context, indexName)
-	if err != nil {
-		log.Fatalf("Failed to describe index \"%v\": %v", indexName, err)
-	}
-
-	idxConnection, err := pc.pc.Index(pinecone.NewIndexConnParams{Host: idxModel.Host, Namespace: "issues"})
-	if err != nil {
-		log.Fatalf("Failed to create IndexConnection1 for Host %v: %v", idxModel.Host, err)
-	}
-	metadata, err := structpb.NewStruct(metadataMap)
-	if err != nil {
-		log.Fatalf("Failed to create metadata map: %v", err)
-	}
-	pcVector := []*pinecone.Vector{
-		{
-			Id:       "vec2",
-			Values:   &vector,
-			Metadata: metadata,
-		},
-	}
-
-	count, err := idxConnection.UpsertVectors(pc.context, pcVector)
-	if err != nil {
-		log.Fatalf("Failed to upsert vectors: %v", err)
-	} else {
-		log.Printf("Successfully upserted %d vector(s)!\n", count)
-	}
-}
-
 func (pc *PineconeClient) RetrieveIssue(vector []float32) string {
 	idxModel, err := pc.pc.DescribeIndex(pc.context, pc.indexName)
 	if err != nil {

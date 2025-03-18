@@ -7,6 +7,7 @@ import (
 	"github.com/3-shake/alert-menta/internal/utils"
 	"github.com/Azure/azure-sdk-for-go/sdk/ai/azopenai"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/pkoukk/tiktoken-go"
 )
 
 type OpenAI struct {
@@ -81,8 +82,16 @@ func (ai *OpenAI) GetEmbedding(text string) ([]float32, error) {
 	}
 	response, err := client.GetEmbeddings(context.TODO(), *options, nil)
 	if err != nil {
-		fmt.Println(err)
 		return []float32{}, err
 	}
 	return response.Embeddings.Data[0].Embedding, nil
+}
+
+func NumberofTokens(text string) (int, error) {
+	encoding := "cl100k_base" // text-embedding-3-small
+	tke, err := tiktoken.GetEncoding(encoding)
+	if err != nil {
+		return 0, err
+	}
+	return len(tke.Encode(text, nil, nil)), nil
 }
