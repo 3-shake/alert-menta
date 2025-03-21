@@ -52,11 +52,6 @@ func main() {
 		logger.Fatalf("Error loading config: %v", err)
 	}
 
-	err = validateCommand(cfg.command, loadedcfg)
-	if err != nil {
-		logger.Fatalf("Error validating command: %v", err)
-	}
-
 	issue := github.NewIssue(cfg.owner, cfg.repo, cfg.issueNumber, cfg.ghToken)
 
 	// Validate command
