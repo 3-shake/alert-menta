@@ -36,8 +36,9 @@ type Ai struct {
 }
 
 type Command struct {
-	Description   string `yaml:"description"`
-	System_prompt string `yaml:"system_prompt"`
+	Description    string `yaml:"description"`
+	System_prompt  string `yaml:"system_prompt"`
+	Require_intent bool   `yaml:"require_intent"`
 }
 
 type OpenAI struct {
