@@ -321,7 +321,7 @@ func CreateDB(idxName string, cfg *Config, loadedcfg *utils.Config, logger *log.
 
 	var docs []rag.Document
 	for _, branch := range branches {
-		branchDocs, err := rag.ConvertBranchtoDocuments(cfg.owner, repo, branch)
+		branchDocs, err := rag.ConvertBranchtoDocuments(cfg.owner, cfg.repo, repo, branch)
 		if err != nil {
 			return fmt.Errorf("Error converting branch to documents: %w", err)
 		}

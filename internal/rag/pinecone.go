@@ -55,7 +55,7 @@ func NewPineconeClient(indexName, apiKey string) (*PineconeClient, error) {
 	return pcClient, nil
 }
 
-func ConvertBranchtoDocuments(owner string, repo *git.Repository, branch utils.Branch) (*[]Document, error) {
+func ConvertBranchtoDocuments(owner, repoName string, repo *git.Repository, branch utils.Branch) (*[]Document, error) {
 	var docs []Document
 	if err := utils.SwitchBranch(repo, branch.Name); err != nil {
 		fmt.Printf("Failed to switch branch: %v\n", err)
@@ -84,7 +84,7 @@ func ConvertBranchtoDocuments(owner string, repo *git.Repository, branch utils.B
 			Id:      branch.Name + "@" + file.Path,
 			Content: content,
 			Branch:  branch.Name,
-			URL:     fmt.Sprintf("https://github.com/%v/%v/blob/%v/%v", owner, repo, branch.Name, file.Path),
+			URL:     fmt.Sprintf("https://github.com/%v/%v/blob/%v/%v", owner, repoName, branch.Name, file.Path),
 			Score:   0,
 		})
 	}
@@ -304,8 +304,6 @@ func (pc *PineconeClient) CreateCodebaseDB(docs []Document, embedding ai.Embeddi
 		}
 		vectors = append(vectors, vector)
 	}
-	fmt.Println("vectors", vectors)
-	fmt.Println("docs", docs)
 	err := pc.UpsertWithStruct(docs, vectors)
 	if err != nil {
 		return fmt.Errorf("Error upserting vectors: %v", err)
