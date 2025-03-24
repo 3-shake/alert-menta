@@ -139,3 +139,13 @@ func ImageToBase64(data []byte, ext string) string {
 	base64img := base64.StdEncoding.EncodeToString(data)
 	return "data:image/" + ext + ";base64," + base64img
 }
+
+func ExtractImageURLs(body string) []string {
+	imageRegex := regexp.MustCompile(`!\[(.*?)\]\((.*?)\)`)
+	matches := imageRegex.FindAllStringSubmatch(body, -1)
+	var urls []string
+	for _, match := range matches {
+		urls = append(urls, match[2])
+	}
+	return urls
+}
