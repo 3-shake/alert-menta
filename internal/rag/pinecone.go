@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -160,14 +161,28 @@ func (pc *PineconeClient) RetrieveByVector(vector []float32, options Options) ([
 		log.Fatalf("Failed to create IndexConnection1 for Host %v: %v", idxModel.Host, err)
 	}
 
-	topK := options.topK
+	topK := options.TopK
 	if topK == 0 {
-		topK = 3 // Default topK value
+		topK = 5 // Default topK value
+	}
+
+	var branchFilter map[string]interface{}
+	if len(options.Branches) != 0 {
+		branchFilter = map[string]interface{}{
+			"branch": map[string]interface{}{
+				"$in": []interface{}{options.Branches},
+			},
+		}
+	}
+	filter, err := structpb.NewStruct(branchFilter)
+	if err != nil {
+		log.Fatalf("Failed to create filter %v", err)
 	}
 
 	res, err := idxConnection.QueryByVectorValues(pc.context, &pinecone.QueryByVectorValuesRequest{
 		Vector:          vector,
 		TopK:            topK,
+		MetadataFilter:  filter,
 		IncludeValues:   false,
 		IncludeMetadata: true,
 	})
@@ -294,17 +309,26 @@ func (pc *PineconeClient) DeleteRecord(id string) error {
 	return nil
 }
 
-func (pc *PineconeClient) CreateCodebaseDB(docs []Document, embedding ai.EmbeddingModel) error {
+func (pc *PineconeClient) CreateCodebaseDB(docs []Document, embedding ai.EmbeddingModel, options CodebaseEmbeddingOptions) error {
 	var vectors [][]float32
+	var tempDocs []Document
+	allBranchFlag := false
+	if len(options.Branches) == 0 {
+		allBranchFlag = true
+	}
+
 	for _, doc := range docs {
 		// 1536 is the default embedding size for the Universal Sentence Encoder
-		vector, err := embedding.GetEmbedding(doc.Content)
-		if err != nil {
-			return fmt.Errorf("Error getting embedding: %v", err) // MAX input length is 8192 in OpenAI
+		if allBranchFlag || slices.Contains(options.Branches, doc.Branch) {
+			vector, err := embedding.GetEmbedding(doc.Content)
+			tempDocs = append(tempDocs, doc)
+			if err != nil {
+				return fmt.Errorf("Error getting embedding: %v", err) // MAX input length is 8192 in OpenAI
+			}
+			vectors = append(vectors, vector)
 		}
-		vectors = append(vectors, vector)
 	}
-	err := pc.UpsertWithStruct(docs, vectors)
+	err := pc.UpsertWithStruct(tempDocs, vectors)
 	if err != nil {
 		return fmt.Errorf("Error upserting vectors: %v", err)
 	}

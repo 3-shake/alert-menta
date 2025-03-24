@@ -3,6 +3,7 @@ package rag
 import (
 	"fmt"
 	"log"
+	"strconv"
 
 	// "github.com/joho/godotenv"
 	"github.com/3-shake/alert-menta/internal/ai"
@@ -21,7 +22,12 @@ type Issue struct {
 	// Source  string
 }
 
-func (pc *PineconeClient) RetrieveIssue(vector []float32) string {
+func (pc *PineconeClient) RetrieveIssue(vector []float32, issueNumber uint32, options Options) string {
+	topK := options.TopK
+	if topK == 0 {
+		topK = 3 // Default topK value
+	}
+
 	idxModel, err := pc.pc.DescribeIndex(pc.context, pc.indexName)
 	if err != nil {
 		log.Fatalf("Failed to describe index \"%v\": %v", pc.indexName, err)
@@ -30,9 +36,21 @@ func (pc *PineconeClient) RetrieveIssue(vector []float32) string {
 	if err != nil {
 		log.Fatalf("Failed to create IndexConnection1 for Host %v: %v", idxModel.Host, err)
 	}
+
+	excludeIdsFilter := map[string]interface{}{
+		"id": map[string]interface{}{
+			"$nin": []interface{}{strconv.Itoa(int(issueNumber))},
+		},
+	}
+	filter, err := structpb.NewStruct(excludeIdsFilter)
+	if err != nil {
+		log.Fatalf("Failed to create filter %v", err)
+	}
+
 	res, err := idxConnection.QueryByVectorValues(pc.context, &pinecone.QueryByVectorValuesRequest{
 		Vector:          vector,
-		TopK:            3,
+		TopK:            uint32(topK),
+		MetadataFilter:  filter,
 		IncludeValues:   false,
 		IncludeMetadata: true,
 	})
@@ -42,9 +60,9 @@ func (pc *PineconeClient) RetrieveIssue(vector []float32) string {
 		log.Printf(prettifyStruct(res))
 	}
 	text := "## Other issues similar to this one are: \n"
-	text += fmt.Sprintf("1. [%s #%s (%s)](%s)\n", res.Matches[0].Vector.Metadata.GetFields()["title"].GetStringValue(), res.Matches[0].Vector.Metadata.GetFields()["id"].GetStringValue(), res.Matches[0].Vector.Metadata.GetFields()["state"].GetStringValue(), res.Matches[0].Vector.Metadata.GetFields()["url"].GetStringValue())
-	text += fmt.Sprintf("1. [%s #%s (%s)](%s)\n", res.Matches[1].Vector.Metadata.GetFields()["title"].GetStringValue(), res.Matches[1].Vector.Metadata.GetFields()["id"].GetStringValue(), res.Matches[1].Vector.Metadata.GetFields()["state"].GetStringValue(), res.Matches[1].Vector.Metadata.GetFields()["url"].GetStringValue())
-	text += fmt.Sprintf("3. [%s #%s (%s)](%s)\n", res.Matches[2].Vector.Metadata.GetFields()["title"].GetStringValue(), res.Matches[2].Vector.Metadata.GetFields()["id"].GetStringValue(), res.Matches[2].Vector.Metadata.GetFields()["state"].GetStringValue(), res.Matches[2].Vector.Metadata.GetFields()["url"].GetStringValue())
+	for i, match := range res.Matches {
+		text += fmt.Sprintf("%d. [%s #%s (%s)](%s)\n", i+1, match.Vector.Metadata.GetFields()["title"].GetStringValue(), match.Vector.Metadata.GetFields()["id"].GetStringValue(), match.Vector.Metadata.GetFields()["state"].GetStringValue(), match.Vector.Metadata.GetFields()["url"].GetStringValue())
+	}
 	return text
 }
 

@@ -7,6 +7,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"text/template"
 
 	"github.com/3-shake/alert-menta/internal/ai"
 	"github.com/3-shake/alert-menta/internal/github"
@@ -60,10 +61,8 @@ func main() {
 	if cfg.useRag {
 		flag.Parse()
 		if cfg.pineconeKey == "" {
-			fmt.Println("If -useRag is set, -pinecone-api-key is required")
-			os.Exit(1)
+			log.Fatalf("Error: If -useRag is set, -pinecone-api-key is required")
 		}
-		// r, err := getNeo4jRetriever(neo4jcfg, log.New(os.Stdout, "[alert-menta main] ", log.Ldate|log.Ltime|log.Llongfile|log.Lmsgprefix))
 		r, err := getPineconeRetriever(cfg)
 		retriever = r
 		if err != nil {
@@ -83,7 +82,7 @@ func main() {
 
 	if cfg.command == "upsert_db" {
 		idxName := rag.GetPineconeIndexName(cfg.owner, cfg.repo)
-		err := CreateDB(idxName, cfg, loadedcfg, logger)
+		err := CreateDB(idxName, []string{"main"}, cfg, loadedcfg, logger)
 		if err != nil {
 			logger.Fatalf("Error upserting DB: %v", err)
 		}
@@ -113,25 +112,42 @@ func main() {
 	}
 
 	var docs []rag.Document
-	var relatedIssue string
+	relatedIssue := ""
 	if cfg.useRag {
 		emb, err := getEmbeddingClient(cfg.oaiKey, loadedcfg, logger)
 		if err != nil {
 			logger.Fatalf("Error geting AI client: %v", err)
 		}
 
-		ragPrompt, err := constructRAGPrompt(cfg.command, cfg.intent, userPrompt, imgs, *issue, loadedcfg, logger)
-		if err != nil {
-			logger.Fatalf("Error constructing RAG prompt: %v", err)
+		if loadedcfg.Ai.Commands[cfg.command].Similar_code {
+			ragPrompt, err := constructRAGPrompt(cfg.command, cfg.intent, userPrompt, imgs, *issue, loadedcfg, logger)
+			if err != nil {
+				logger.Fatalf("Error constructing RAG prompt: %v", err)
+			}
+
+			ragComment, err := aic.GetResponse(ragPrompt)
+			if err != nil {
+				logger.Fatalf("Error getting RAG comment: %v", err)
+			}
+			logger.Println("RAG Comment:", ragComment)
+
+			ragVector, err := emb.GetEmbedding(ragComment)
+			if err != nil {
+				logger.Fatalf("Error getting RAG vector: %v", err)
+			}
+
+			docs, err = retriever.RetrieveByVector(ragVector, rag.Options{})
+			for _, d := range docs {
+				prompt.UserPrompt += "\n" + d.String()
+			}
 		}
-		ragComment, err := aic.GetResponse(ragPrompt)
-		ragVector, err := emb.GetEmbedding(ragComment)
-		docs, err = retriever.RetrieveByVector(ragVector, rag.Options{})
-		for _, d := range docs {
-			prompt.UserPrompt += "\n" + d.String()
+		if loadedcfg.Ai.Commands[cfg.command].Similar_issue {
+			issueVector, err := emb.GetEmbedding(userPrompt)
+			if err != nil {
+				logger.Fatalf("Error getting issue vector: %v", err)
+			}
+			relatedIssue = retriever.RetrieveIssue(issueVector, uint32(cfg.issueNumber), rag.Options{})
 		}
-		issueVector, err := emb.GetEmbedding(userPrompt)
-		relatedIssue = retriever.RetrieveIssue(issueVector)
 	}
 
 	comment, err := aic.GetResponse(prompt)
@@ -228,20 +244,39 @@ func constructPrompt(command, intent, userPrompt string, imgs []ai.Image, cfg *u
 
 // RAG の前処理を行うプロンプトを作成する関数
 func constructRAGPrompt(command, intent, userPrompt string, imgs []ai.Image, issue github.GitHubIssue, cfg *utils.Config, logger *log.Logger) (*ai.Prompt, error) {
-	systemPrompt := "A GitHub Issue has been opened with the following content. Extract relevant information in a RAG. List files, functions, structures, etc. that should be checked. Also provide the file structure of your main branch to extract the information you need."
+	systemPrompt := `
+I'm looking to identify related files and functions to solve a GitHub Issue. Please provide analysis and advice based on the information I'll share in the following format:
+
+## Analysis Requested:
+1. Files likely related to this Issue and why
+2. Specific functions or code blocks that should be investigated
+3. Possible root causes of the problem
+4. Approaches for resolution
+
+Please suggest specific file paths and function names where possible. Maximize the use of information available from the repository structure to understand the code architecture before making suggestions.
+	`
+	userPromptPlaceholder := `## GitHub Issue:
+{{.UserPrompt}}
+
+## Repository Structure:
+{{.RepositoryStructure}}
+	`
+	userPromptTmpl, err := template.New("userPrompt").Parse(userPromptPlaceholder)
+	if err != nil {
+		logger.Fatalf("Error parsing userPrompt template: %v", err)
+	}
+	type PromptData struct {
+		UserPrompt          string
+		RepositoryStructure string
+	}
 	defaultBranch, _ := issue.GetDefaultBranch()
 	lf, _ := issue.ListFiles(defaultBranch)
 	lfs := strings.Join(lf, "\n")
-	if command == "ask" {
-		if intent == "" {
-			return nil, fmt.Errorf("Error: intent is required for 'ask' command")
-		}
-		systemPrompt = cfg.Ai.Commands[command].System_prompt + intent + "\n"
-	} else {
-		systemPrompt = cfg.Ai.Commands[command].System_prompt
-	}
+	userPromptBuf := strings.Builder{}
+	err = userPromptTmpl.Execute(&userPromptBuf, PromptData{UserPrompt: userPrompt, RepositoryStructure: lfs})
+	userPrompt = userPromptBuf.String()
 	logger.Println("\x1b[34mRAGPrompt: |\n", systemPrompt, userPrompt, "\x1b[0m")
-	return &ai.Prompt{UserPrompt: userPrompt + lfs, SystemPrompt: systemPrompt, Images: imgs}, nil
+	return &ai.Prompt{UserPrompt: userPrompt, SystemPrompt: systemPrompt, Images: imgs}, nil
 }
 
 // Initialize AI client
@@ -293,6 +328,7 @@ func getEmbeddingClient(oaiKey string, cfg *utils.Config, logger *log.Logger) (a
 // Initialize Neo4jRetriever
 func getNeo4jRetriever(cfg *Neo4jConfig, logger *log.Logger) (*rag.Neo4jRetriever, error) {
 	r, err := rag.NewNeo4jRetriever(cfg.uri, cfg.username, cfg.password, cfg.fulltextIndex, cfg.vectorIndex)
+	logger.Println("Neo4jRetriever:", r)
 	if err != nil {
 		return nil, fmt.Errorf("Error: new Neo4jRetriever: %w", err)
 	}
@@ -309,7 +345,7 @@ func getPineconeRetriever(cfg *Config) (*rag.PineconeClient, error) {
 	return r, nil
 }
 
-func CreateDB(idxName string, cfg *Config, loadedcfg *utils.Config, logger *log.Logger) error {
+func CreateDB(idxName string, targetBranches []string, cfg *Config, loadedcfg *utils.Config, logger *log.Logger) error {
 	logger.Println("Creating DB to Index:", idxName)
 	repoURL := fmt.Sprintf("https://github.com/%s/%s", cfg.owner, cfg.repo)
 	repo, err := utils.CloneRepository(repoURL, &utils.AuthOptions{Username: cfg.owner, Token: cfg.ghToken})
@@ -338,21 +374,7 @@ func CreateDB(idxName string, cfg *Config, loadedcfg *utils.Config, logger *log.
 		return fmt.Errorf("Error getting Pinecone client: %w", err)
 	}
 
-	/* Temporarily commented out because searching one by one in Pinecone takes too long
-	// get file content from Pinecone, compare with the new docs and add only the new docs
-	newDocs := []rag.Document{}
-	for _, doc := range docs {
-		// get file content from Pinecone
-		existedDoc, _ := pc.QueryById(doc.Id)
-		if existedDoc == nil {
-			newDocs = append(newDocs, doc)
-		} else if existedDoc.Content != doc.Content {
-			newDocs = append(newDocs, doc)
-		}
-	}
-	pc.CreateCodebaseDB(newDocs, emb)
-	*/
-	pc.CreateCodebaseDB(docs, emb)
+	pc.CreateCodebaseDB(docs, emb, rag.CodebaseEmbeddingOptions{Branches: targetBranches})
 
 	issues := github.GetAllIssues(cfg.owner, cfg.repo, cfg.ghToken)
 	pc.CreateIssueDB(issues, emb)
