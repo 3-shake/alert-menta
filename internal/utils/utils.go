@@ -38,6 +38,8 @@ type Ai struct {
 type Command struct {
 	Description   string `yaml:"description"`
 	System_prompt string `yaml:"system_prompt"`
+	Similar_issue bool   `yaml:"similar_issue"`
+	Similar_code  bool   `yaml:"similar_code"`
 }
 
 type OpenAI struct {

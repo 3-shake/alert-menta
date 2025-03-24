@@ -5,7 +5,7 @@ system:
 ai:
   provider: "openai" # "openai" or "vertexai"
   openai:
-    model: "gpt-4o-mini-2024-07-18" # Check the list of available models by `curl https://api.openai.com/v1/models -H "Authorization: Bearer $OPENAI_API_KEY"`
+    model: "gpt-4o-mini" # Check the list of available models by `curl https://api.openai.com/v1/models -H "Authorization: Bearer $OPENAI_API_KEY"`
 
   vertexai:
     project: "<YOUR_PROJECT_ID>"
@@ -16,9 +16,15 @@ ai:
     - describe:
         description: "Generate a detailed description of the Issue."
         system_prompt: "The following is the GitHub Issue and comments on it. Please Generate a detailed description.\n"
+        similar_code: false
+        similar_issue: true
     - suggest:
         description: "Provide suggestions for improvement based on the contents of the Issue."
         system_prompt: "The following is the GitHub Issue and comments on it. Please identify the issues that need to be resolved based on the contents of the Issue and provide three suggestions for improvement.\n"
+        similar_code: true
+        similar_issue: false
     - ask:
         description: "Answer free-text questions."
         system_prompt: "The following is the GitHub Issue and comments on it. Based on the content provide a detailed response to the following question:\n"
+        similar_code: true
+        similar_issue: false
