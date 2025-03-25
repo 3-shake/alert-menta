@@ -155,11 +155,15 @@ func main() {
 		logger.Fatalf("Error getting Response: %v", err)
 	}
 	if cfg.useRag {
-		comment += "\n\n" + "## Sources:\n"
-		for i, d := range docs {
-			comment += fmt.Sprintf("%d. [%s](%s)\n", i+1, d.Id, d.URL)
+		if len(docs) > 0 {
+			comment += "\n\n" + "## Sources:\n"
+			for i, d := range docs {
+				comment += fmt.Sprintf("%d. [%s](%s)\n", i+1, d.Id, d.URL)
+			}
 		}
-		comment += "\n\n" + relatedIssue
+		if relatedIssue != "" {
+			comment += "\n\n" + relatedIssue
+		}
 	}
 	logger.Println("Response:", comment)
 
