@@ -259,22 +259,24 @@ I'm looking to identify related files and functions to solve a GitHub Issue. Ple
 
 Please suggest specific file paths and function names where possible. Maximize the use of information available from the repository structure to understand the code architecture before making suggestions.
 	`
-	userPromptPlaceholder := `## GitHub Issue:
+	userPromptTmpl, err := template.New("userPrompt").Parse(`## GitHub Issue:
 {{.UserPrompt}}
 
 ## Repository Structure:
 {{.RepositoryStructure}}
-	`
-	userPromptTmpl, err := template.New("userPrompt").Parse(userPromptPlaceholder)
+	`)
 	if err != nil {
-		logger.Fatalf("Error parsing userPrompt template: %v", err)
+		return nil, fmt.Errorf("Error parsing userPrompt template: %w", err)
 	}
 	type PromptData struct {
 		UserPrompt          string
 		RepositoryStructure string
 	}
 	defaultBranch, _ := issue.GetDefaultBranch()
-	lf, _ := issue.ListFiles(defaultBranch)
+	lf, err := issue.ListFiles(defaultBranch)
+	if err != nil {
+		return nil, fmt.Errorf("Error listing files: %w", err)
+	}
 	lfs := strings.Join(lf, "\n")
 	userPromptBuf := strings.Builder{}
 	err = userPromptTmpl.Execute(&userPromptBuf, PromptData{UserPrompt: userPrompt, RepositoryStructure: lfs})
