@@ -79,9 +79,9 @@ Set the following in `command.{command}`.
 As an example, to configure the ANALYSIS command, write:
 ```yaml
 - analysis:
-  description: "This command performs a root cause analysis of an Issue."
-  system_prompt: "Please determine the root cause of the issue and resolve it based on the content of the issue."
-  require_intent: false
+    description: "This command performs a root cause analysis of an Issue."
+    system_prompt: "Please determine the root cause of the issue and resolve it based on the content of the issue."
+    require_intent: false
 ```
 
 ### Actions
