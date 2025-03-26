@@ -9,11 +9,18 @@ We reduce the burden of system failure response using LLM.
 You can receive support for failure handling that is completed within GitHub.
 - Execute commands interactively in GitHub Issue comments:
   - `describe` command to summarize the Issue
-  - `analysis` command for root cause analysis of failures (in development)
   - `suggest` command for proposing improvement measures for failures
   - `ask` command for asking additional questions
-- Mechanism to improve response accuracy using [RAG](https://cloud.google.com/use-cases/retrieval-augmented-generation?hl=en) (in development)
-- Selectable LLM models (OpenAI, VertexAI)
+- Execute any command defined by the user other than the above (e.g. `analysis` command for root cause analysis of failures). Please see [here](#.alert-menta.user.yaml)
+- Mechanism to improve response accuracy using [RAG](https://cloud.google.com/use-cases/retrieval-augmented-generation?hl=en) in [Pinecone](https://www.pinecone.io/)
+  - If you use RAG, you must register with Pinecone, the vector database, and register your API key as PINECONE_API_KEY in Actions Secrets. Please see [here](#3.-configure-to-use-rag)
+  - `similar_code` option to search similar code
+  - `similar_issue` option to search similar issues
+- Selectable LLM models
+  - OpenAI
+  - VertexAI
+  - Claude (under development)
+  - OpenAI-Compatible Server (under development)
 - Extensible prompt text
   - Multilingual support
 
@@ -24,18 +31,26 @@ Prepare a GitHub PAT with the following permissions and register it in Secrets:
 - repo
 - workflow
 ### 2. Configure to use LLM
-#### Open AI
+#### OpenAI
 Generate an API key and register it in Secrets.
 #### Vertex AI
 Enable Vertex AI on Google Cloud.
 Alert-menta obtains access to VertexAI using [Workload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation). Please see [here](#if-using-vertex-ai) for details.
-### 3. Create the alert-menta configuration file
+### 3. Configure to use RAG
+#### Overview
+Alert-Menta offers the ability to suggest similar issues and search the code base.
+This functionality uses Pinecone as a vector database.
+#### Setup Pinecone
+Pinecone can be found [here](https://docs.pinecone.io/guides/get-started/overview) to register an account and create a database.
+After creating an account, obtain an API key and save it in Actions Secrets under the name PINECONE_API_KEY.
+Alert-Menta will automatically create the Index.
+### 4. Create the alert-menta configuration file
 Create the alert-menta configuration file in the root of the repository. For details, please see [here](#alert-mentauseryaml).
-### 4. Create the Actions configuration file
+### 5. Create the Actions configuration file
 There is a [template](#template) available, so please use it.
-### 5. Monitoring alerts or user reports are received on Issues
+### 6. Monitoring alerts or user reports are received on Issues
 For the method to bring monitoring alerts to Issues, please see [this repository](https://github.com/kechigon/alert-menta-lab/tree/main).
-### 6. Execute alert-menta
+### 7. Execute alert-menta
 Execute commands on the Issue. Run commands with a backslash at the beginning (e.g., `/describe`). For the `ask` command, leave a space and enter the question (e.g., `/ask What about the Next Action?`). Alert-menta includes the text of the Issue in the prompt and sends it to the LLM, then posts the response as a comment on the Issue.
 
 ## Configuration
