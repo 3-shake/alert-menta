@@ -10,7 +10,7 @@ ai:
   vertexai:
     project: "<YOUR_PROJECT_ID>"
     location: "us-central1"
-    model: "gemini-1.5-flash-001"
+    model: "gemini-2.0-flash-001"
   
   commands:
     - describe:

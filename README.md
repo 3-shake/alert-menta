@@ -52,17 +52,23 @@ ai:
   vertexai:
     project: "<YOUR_PROJECT_ID>"
     location: "us-central1"
-    model: "gemini-1.5-flash-001"
+    model: "gemini-2.0-flash-001"
   commands:
     - describe:
         description: "Generate a detailed description of the Issue."
         system_prompt: "The following is the GitHub Issue and comments on it. Please Generate a detailed description.\n"
+        similar_code: false
+        similar_issue: true
     - suggest:
         description: "Provide suggestions for improvement based on the contents of the Issue."
         system_prompt: "The following is the GitHub Issue and comments on it. Please identify the issues that need to be resolved based on the contents of the Issue and provide three suggestions for improvement.\n"
+        similar_code: true
+        similar_issue: false
     - ask:
         description: "Answer free-text questions."
         system_prompt: "The following is the GitHub Issue and comments on it. Based on the content, provide a detailed response to the following question:\n"
+        similar_code: true
+        similar_issue: false
 ```
 Specify the LLM to use with `ai.provider`.
 You can change the system prompt with `commands.{command}.system_prompt`.
@@ -122,9 +128,9 @@ jobs:
       - name: Add Comment
         run: |
           if [[ "$COMMAND" == "ask" ]]; then
-            ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -github-token ${{ secrets.GH_TOKEN }} -api-key ${{ secrets.OPENAI_API_KEY }} -command $COMMAND -config $CONFIG_FILE -intent "$INTENT"
+            ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -github-token ${{ secrets.GH_TOKEN }} -api-key ${{ secrets.OPENAI_API_KEY }} -command $COMMAND -config $CONFIG_FILE -intent "$INTENT" -use-rag -pinecone-api-key ${{ secrets.PINECONE_API_KEY }}
           else
-            ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -github-token ${{ secrets.GH_TOKEN }} -api-key ${{ secrets.OPENAI_API_KEY }} -command $COMMAND -config $CONFIG_FILE
+            ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -github-token ${{ secrets.GH_TOKEN }} -api-key ${{ secrets.OPENAI_API_KEY }} -command $COMMAND -config $CONFIG_FILE -use-rag -pinecone-api-key ${{ secrets.PINECONE_API_KEY }}
           fi
 ```
 #### If using Vertex AI
