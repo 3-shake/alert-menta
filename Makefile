@@ -1,20 +1,30 @@
 # alert-menta Makefile
 
-.PHONY: all build test test-verbose test-e2e lint lint-fix fmt vet clean help deps deps-update tools dev-setup ci coverage
+.PHONY: all build test test-verbose test-e2e lint lint-fix fmt vet clean help deps deps-update tools dev-setup ci coverage release-dry-run
 
 # Versions
 GO_VERSION := 1.23
 GOLANGCI_LINT_VERSION := v2.8.0
 
 # Build
-BINARY_NAME := alert-menta
 BUILD_DIR := bin
+LDFLAGS := -s -w
 
 all: lint test build
 
 ## Build
 build:
-	go build -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/...
+	@echo "Building all binaries..."
+	@mkdir -p $(BUILD_DIR)
+	go build -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/alert-menta ./cmd/main.go
+	go build -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/alert-menta-mcp ./cmd/mcp/main.go
+	go build -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/alert-menta-firstresponse ./cmd/firstresponse/main.go
+	go build -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/alert-menta-triage ./cmd/triage/main.go
+	@echo "Build complete: $(BUILD_DIR)/"
+
+## Build single binary (for backward compatibility)
+build-main:
+	go build -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/alert-menta ./cmd/main.go
 
 ## Test
 test:
@@ -69,6 +79,10 @@ dev-setup: tools deps
 
 ## CI
 ci: lint test build
+
+## Release
+release-dry-run:
+	goreleaser release --snapshot --clean
 
 ## Help
 help:
