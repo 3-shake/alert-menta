@@ -230,7 +230,17 @@ func constructPrompt(command, intent, userPrompt string, imgs []ai.Image, cfg *u
 
 // Initialize AI client
 func getAIClient(oaiKey string, cfg *utils.Config, logger *log.Logger) (ai.Ai, error) {
-	switch cfg.Ai.Provider {
+	// Check if fallback is enabled
+	if cfg.Ai.Fallback.Enabled && len(cfg.Ai.Fallback.Providers) > 0 {
+		return getAIClientWithFallback(oaiKey, cfg, logger)
+	}
+
+	return getSingleAIClient(cfg.Ai.Provider, oaiKey, cfg, logger)
+}
+
+// getSingleAIClient creates a single AI client for the given provider
+func getSingleAIClient(provider, oaiKey string, cfg *utils.Config, logger *log.Logger) (ai.Ai, error) {
+	switch provider {
 	case "openai":
 		if oaiKey == "" {
 			return nil, fmt.Errorf("OpenAI API key is required")
@@ -254,8 +264,39 @@ func getAIClient(oaiKey string, cfg *utils.Config, logger *log.Logger) (ai.Ai, e
 		logger.Println("Anthropic model:", cfg.Ai.Anthropic.Model)
 		return ai.NewAnthropicClient(oaiKey, cfg.Ai.Anthropic.Model), nil
 	default:
-		return nil, fmt.Errorf("invalid provider: %s", cfg.Ai.Provider)
+		return nil, fmt.Errorf("invalid provider: %s", provider)
 	}
+}
+
+// getAIClientWithFallback creates a fallback client with multiple providers
+func getAIClientWithFallback(oaiKey string, cfg *utils.Config, logger *log.Logger) (ai.Ai, error) {
+	logger.Println("Fallback mode enabled")
+	logger.Printf("Provider order: %v", cfg.Ai.Fallback.Providers)
+
+	var clients []ai.Ai
+	var names []string
+
+	for _, provider := range cfg.Ai.Fallback.Providers {
+		client, err := getSingleAIClient(provider, oaiKey, cfg, logger)
+		if err != nil {
+			logger.Printf("Warning: could not initialize provider %s: %v", provider, err)
+			continue
+		}
+		clients = append(clients, client)
+		names = append(names, provider)
+	}
+
+	if len(clients) == 0 {
+		return nil, fmt.Errorf("no valid providers configured for fallback")
+	}
+
+	fallbackConfig := ai.FallbackClientConfig{
+		MaxRetries: cfg.Ai.Fallback.Retry.MaxRetries,
+		DelayMs:    cfg.Ai.Fallback.Retry.DelayMs,
+		Logger:     logger,
+	}
+
+	return ai.NewFallbackClient(clients, names, fallbackConfig), nil
 }
 
 // sendSlackNotification sends a notification to Slack if configured

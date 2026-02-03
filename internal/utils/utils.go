@@ -48,6 +48,21 @@ type Ai struct {
 	OpenAI    OpenAI             `yaml:"openai"`
 	VertexAI  VertexAI           `yaml:"vertexai"`
 	Anthropic AnthropicConfig    `yaml:"anthropic"`
+	Fallback  FallbackConfig     `yaml:"fallback"`
+}
+
+// FallbackConfig holds fallback provider configuration
+type FallbackConfig struct {
+	Enabled   bool     `yaml:"enabled"`
+	Providers []string `yaml:"providers" mapstructure:"providers"`
+	Retry     RetryConfig `yaml:"retry"`
+}
+
+// RetryConfig holds retry settings for fallback
+type RetryConfig struct {
+	MaxRetries int `yaml:"max_retries" mapstructure:"max_retries"`
+	DelayMs    int `yaml:"delay_ms" mapstructure:"delay_ms"`
+	TimeoutMs  int `yaml:"timeout_ms" mapstructure:"timeout_ms"`
 }
 
 type Command struct {
