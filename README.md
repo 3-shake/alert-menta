@@ -118,6 +118,42 @@ The built-in `postmortem` command generates comprehensive postmortem documentati
     require_intent: false
 ```
 
+### Slack Notifications
+alert-menta can send notifications to Slack when AI responds to commands. This is useful for keeping your team informed about incident analysis.
+
+#### Configuration
+Add the following to your `.alert-menta.user.yaml`:
+```yaml
+notifications:
+  slack:
+    enabled: true
+    webhook_url: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+    channel: "#incidents"  # Optional: Override webhook default channel
+    notify_on:
+      - command_response  # Notify when AI responds to a command
+```
+
+#### Using CLI Flag
+You can also pass the webhook URL as a command-line flag:
+```bash
+./alert-menta -slack-webhook-url "https://hooks.slack.com/services/YOUR/WEBHOOK/URL" ...
+```
+The CLI flag takes precedence over the config file setting.
+
+#### Setup Slack Webhook
+1. Go to your Slack workspace settings
+2. Navigate to "Apps" > "Incoming Webhooks"
+3. Create a new webhook and select the channel
+4. Copy the webhook URL to your config or secrets
+
+#### GitHub Actions Integration
+Add your Slack webhook URL to GitHub Secrets and update your workflow:
+```yaml
+- name: Add Comment
+  run: |
+    ./alert-menta ... -slack-webhook-url ${{ secrets.SLACK_WEBHOOK_URL }}
+```
+
 ### Actions
 #### Template
 The `.github/workflows/alert-menta.yaml` in this repository is a template. The contents are as follows:
