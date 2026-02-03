@@ -233,7 +233,17 @@ func (s *Server) handleListCommands(ctx context.Context, request mcp.CallToolReq
 
 // getAIClient creates an AI client based on configuration
 func (s *Server) getAIClient() (ai.Ai, error) {
-	switch s.config.Ai.Provider {
+	// Check if fallback is enabled
+	if s.config.Ai.Fallback.Enabled && len(s.config.Ai.Fallback.Providers) > 0 {
+		return s.getAIClientWithFallback()
+	}
+
+	return s.getSingleAIClient(s.config.Ai.Provider)
+}
+
+// getSingleAIClient creates a single AI client for the given provider
+func (s *Server) getSingleAIClient(provider string) (ai.Ai, error) {
+	switch provider {
 	case "openai":
 		if s.aiKey == "" {
 			return nil, fmt.Errorf("OpenAI API key is required")
@@ -247,8 +257,35 @@ func (s *Server) getAIClient() (ai.Ai, error) {
 	case "vertexai":
 		return ai.NewVertexAIClient(s.config.Ai.VertexAI.Project, s.config.Ai.VertexAI.Region, s.config.Ai.VertexAI.Model)
 	default:
-		return nil, fmt.Errorf("invalid provider: %s", s.config.Ai.Provider)
+		return nil, fmt.Errorf("invalid provider: %s", provider)
 	}
+}
+
+// getAIClientWithFallback creates a fallback client with multiple providers
+func (s *Server) getAIClientWithFallback() (ai.Ai, error) {
+	var clients []ai.Ai
+	var names []string
+
+	for _, provider := range s.config.Ai.Fallback.Providers {
+		client, err := s.getSingleAIClient(provider)
+		if err != nil {
+			continue
+		}
+		clients = append(clients, client)
+		names = append(names, provider)
+	}
+
+	if len(clients) == 0 {
+		return nil, fmt.Errorf("no valid providers configured for fallback")
+	}
+
+	fallbackConfig := ai.FallbackClientConfig{
+		MaxRetries: s.config.Ai.Fallback.Retry.MaxRetries,
+		DelayMs:    s.config.Ai.Fallback.Retry.DelayMs,
+		Logger:     nil, // MCP server doesn't use logger
+	}
+
+	return ai.NewFallbackClient(clients, names, fallbackConfig), nil
 }
 
 // ServeStdio starts the MCP server using stdio transport

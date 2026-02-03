@@ -120,6 +120,31 @@ The built-in `postmortem` command generates comprehensive postmortem documentati
     require_intent: false
 ```
 
+### Provider Fallback
+alert-menta supports automatic failover between AI providers. If the primary provider fails (timeout, rate limit, server error), it automatically tries backup providers.
+
+#### Configuration
+Add the following to your `.alert-menta.user.yaml`:
+```yaml
+ai:
+  fallback:
+    enabled: true
+    providers:  # Tried in order
+      - openai
+      - anthropic
+      # - vertexai
+    retry:
+      max_retries: 2    # Retries per provider
+      delay_ms: 1000    # Delay between retries
+```
+
+When fallback is enabled, the primary `ai.provider` setting is ignored, and providers are tried in the order specified in `fallback.providers`.
+
+#### Supported Providers
+- `openai` - OpenAI API (GPT-4, etc.)
+- `anthropic` - Anthropic API (Claude)
+- `vertexai` - Google Vertex AI (Gemini)
+
 ### Slack Notifications
 alert-menta can send notifications to Slack when AI responds to commands. This is useful for keeping your team informed about incident analysis.
 

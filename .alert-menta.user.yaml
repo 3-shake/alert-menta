@@ -12,6 +12,21 @@ ai:
     location: "us-central1"
     model: "gemini-2.0-flash-001"
 
+  anthropic:
+    model: "claude-sonnet-4-20250514"
+
+  # Fallback configuration - automatically switches to backup providers on failure
+  fallback:
+    enabled: false  # Set to true to enable automatic failover
+    providers:      # Providers tried in order (first = primary, rest = fallbacks)
+      - openai
+      - anthropic
+      # - vertexai  # Uncomment if using VertexAI as fallback
+    retry:
+      max_retries: 2    # Retries per provider before moving to next
+      delay_ms: 1000    # Delay between retries in milliseconds
+      timeout_ms: 30000 # Request timeout (not yet implemented)
+
   commands:
     - describe:
         description: "Generate a detailed description of the Issue."
