@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/3-shake/alert-menta/internal/utils"
@@ -49,20 +50,33 @@ func (ai *OpenAI) GetResponse(prompt *Prompt) (string, error) {
 		},
 	}
 
-	// Call the chat completion endpoint
-	resp, err := client.GetChatCompletions(context.TODO(), azopenai.ChatCompletionsOptions{
+	// Build chat completion options
+	options := azopenai.ChatCompletionsOptions{
 		DeploymentName: &ai.model,
 		Messages:       messages,
-	}, nil)
+	}
+
+	// Add structured output (JSON mode) if enabled
+	if prompt.StructuredOutput != nil && prompt.StructuredOutput.Enabled {
+		options.ResponseFormat = &azopenai.ChatCompletionsJSONResponseFormat{}
+	}
+
+	// Call the chat completion endpoint
+	resp, err := client.GetChatCompletions(context.TODO(), options, nil)
 	if err != nil {
 		return "", fmt.Errorf("ChatCompletion error: %w", err)
 	}
 
-	// Print the response
-	// resp.Choices[0].Message.Content is type *string with azopenai and type string with go-openai
-	// fmt.Println(*resp.Choices[0].Message.Content)
+	response := *resp.Choices[0].Message.Content
 
-	return *resp.Choices[0].Message.Content, nil
+	// Validate JSON output if structured output is enabled
+	if prompt.StructuredOutput != nil && prompt.StructuredOutput.Enabled {
+		if !json.Valid([]byte(response)) {
+			return "", fmt.Errorf("structured output validation failed: response is not valid JSON")
+		}
+	}
+
+	return response, nil
 }
 
 func NewOpenAIClient(apiKey string, model string) *OpenAI {

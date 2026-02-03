@@ -186,6 +186,50 @@ When fallback is enabled, the primary `ai.provider` setting is ignored, and prov
 - `anthropic` - Anthropic API (Claude)
 - `vertexai` - Google Vertex AI (Gemini)
 
+### Structured Output
+alert-menta supports structured JSON output for commands that need machine-parseable responses. This is useful for integrations with other systems.
+
+#### Configuration
+Add `structured_output` to any command in your `.alert-menta.user.yaml`:
+```yaml
+commands:
+  - triage:
+      description: "Triage incident with structured output"
+      system_prompt: "Analyze the incident..."
+      require_intent: false
+      structured_output:
+        enabled: true
+        schema_name: "incident_triage"
+        schema:
+          type: object
+          properties:
+            severity:
+              type: string
+              enum: ["critical", "high", "medium", "low"]
+            category:
+              type: string
+            summary:
+              type: string
+          required: ["severity", "category", "summary"]
+        fallback_to_text: true
+```
+
+#### Output Example
+```json
+{
+  "severity": "high",
+  "category": "infrastructure",
+  "summary": "API server returning 500 errors due to database connection issues"
+}
+```
+
+#### Provider Support
+| Provider | JSON Mode | Schema Validation |
+|----------|-----------|-------------------|
+| OpenAI | Yes | Yes (native) |
+| Anthropic | Yes | Via prompt |
+| VertexAI | Yes | Via prompt |
+
 ### Slack Notifications
 alert-menta can send notifications to Slack when AI responds to commands. This is useful for keeping your team informed about incident analysis.
 

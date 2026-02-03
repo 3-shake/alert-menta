@@ -308,6 +308,48 @@ ai:
           ---
           The following is the GitHub Issue and comments. Generate the incident timeline:
         require_intent: false
+    # Example command with structured output (#64)
+    - triage:
+        description: "Automatically triage the incident with structured JSON output."
+        system_prompt: |
+          You are an SRE expert. Analyze the incident and provide a structured triage assessment.
+          Return ONLY a valid JSON object with the specified schema.
+        require_intent: false
+        structured_output:
+          enabled: true
+          schema_name: "incident_triage"
+          schema:
+            type: object
+            properties:
+              severity:
+                type: string
+                enum: ["critical", "high", "medium", "low"]
+                description: "Incident severity level"
+              category:
+                type: string
+                enum: ["infrastructure", "application", "database", "network", "security", "other"]
+                description: "Incident category"
+              summary:
+                type: string
+                description: "Brief summary of the incident"
+              affected_services:
+                type: array
+                items:
+                  type: string
+                description: "List of affected services"
+              recommended_actions:
+                type: array
+                items:
+                  type: string
+                description: "Recommended immediate actions"
+              estimated_impact:
+                type: string
+                description: "Estimated user/business impact"
+            required:
+              - severity
+              - category
+              - summary
+          fallback_to_text: true
 
 # First Response Guide settings (#62)
 # Automatically posts an incident response guide when issues with specific labels are created
