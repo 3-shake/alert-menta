@@ -8,7 +8,7 @@ We reduce the burden of system failure response using LLM.
 You can receive support for failure handling that is completed within GitHub.
 - Execute commands interactively in GitHub Issue comments:
   - `describe` command to summarize the Issue
-  - `analysis` command for root cause analysis of failures (in development)
+  - `analysis` command for root cause analysis of failures using 5 Whys method
   - `suggest` command for proposing improvement measures for failures
   - `ask` command for asking additional questions
 - Mechanism to improve response accuracy using [RAG](https://cloud.google.com/use-cases/retrieval-augmented-generation?hl=en) (in development)
@@ -48,27 +48,57 @@ system:
 ai:
   provider: "openai" # "openai" or "vertexai"
   openai:
-    model: "gpt-4o-mini-2024-07-18" # Check the list of available models by `curl https://api.openai.com/v1/models -H "Authorization: Bearer $OPENAI_API_KEY"`
-
+    model: "gpt-4o-mini" # Check the list of available models by curl https://api.openai.com/v1/models -H "Authorization: Bearer $OPENAI_API_KEY"
   vertexai:
     project: "<YOUR_PROJECT_ID>"
     location: "us-central1"
-    model: "gemini-1.5-flash-001"
-  
+    model: "gemini-2.0-flash-001"
   commands:
     - describe:
         description: "Generate a detailed description of the Issue."
         system_prompt: "The following is the GitHub Issue and comments on it. Please Generate a detailed description.\n"
+        require_intent: false
     - suggest:
         description: "Provide suggestions for improvement based on the contents of the Issue."
         system_prompt: "The following is the GitHub Issue and comments on it. Please identify the issues that need to be resolved based on the contents of the Issue and provide three suggestions for improvement.\n"
+        require_intent: false
     - ask:
         description: "Answer free-text questions."
-        system_prompt: "The following is the GitHub Issue and comments on it. Based on the content provide a detailed response to the following question:\n"
-
+        system_prompt: "The following is the GitHub Issue and comments on it. Based on the content, provide a detailed response to the following question:\n"
+        require_intent: true
 ```
 Specify the LLM to use with `ai.provider`.
 You can change the system prompt with `commands.{command}.system_prompt`.
+#### Custom command
+`.alert-menta.user.yaml` allows you to set up custom commands for users.
+Set the following in `command.{command}`.
+- `description`
+- `system_prompt`: describe the primary instructions for this command.
+- `require_intent`: allows the command to specify arguments. (e.g. if `require_intent` is true, we execute command that `/{command} “some instruction”`)
+
+The built-in `analysis` command uses the 5 Whys method for root cause analysis. You can customize it or create your own RCA command:
+```yaml
+- analysis:
+    description: "Perform root cause analysis using 5 Whys method."
+    system_prompt: |
+      You are an SRE expert. Perform a root cause analysis on the following incident.
+
+      Analysis Framework:
+      1. Identify the direct cause
+      2. Apply 5 Whys analysis
+      3. Identify the root cause
+      4. List contributing factors
+      5. Propose recommended actions
+
+      Output in structured Markdown format with sections:
+      - Direct Cause
+      - 5 Whys Analysis
+      - Root Cause
+      - Contributing Factors
+      - Recommended Actions
+    require_intent: false
+```
+
 ### Actions
 #### Template
 The `.github/workflows/alert-menta.yaml` in this repository is a template. The contents are as follows:
@@ -82,8 +112,8 @@ on:
 
 jobs:
   Alert-Menta:
-    if: (startsWith(github.event.comment.body, '/describe') || startsWith(github.event.comment.body, '/suggest') || startsWith(github.event.comment.body, '/ask')) && (github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
-    runs-on: ubuntu-22.04
+    if: startsWith(github.event.comment.body, '/') && (github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
+    runs-on: ubuntu-24.04
     permissions:
       issues: write
       contents: read
@@ -99,21 +129,6 @@ jobs:
           | jq '.assets[] | select(.name | contains("Linux_x86")) | .id')"
           tar -zxvf alert-menta_Linux_x86_64.tar.gz
 
-      - name: Set Command
-        id: set_command
-        run: |
-          COMMENT_BODY="${{ github.event.comment.body }}"
-          if [[ "$COMMENT_BODY" == /ask* ]]; then
-            COMMAND=ask
-            INTENT=${COMMENT_BODY:5}
-            echo "INTENT=$INTENT" >> $GITHUB_ENV
-          elif [[ "$COMMENT_BODY" == /describe* ]]; then
-            COMMAND=describe
-          elif [[ "$COMMENT_BODY" == /suggest* ]]; then
-            COMMAND=suggest
-          fi
-          echo "COMMAND=$COMMAND" >> $GITHUB_ENV
-
       - run: echo "REPOSITORY_NAME=${GITHUB_REPOSITORY#${GITHUB_REPOSITORY_OWNER}/}" >> $GITHUB_ENV
 
       - name: Get user defined config file
@@ -122,9 +137,27 @@ jobs:
         run: |
           curl -H "Authorization: token ${{ secrets.GH_TOKEN }}" -L -o .alert-menta.user.yaml "https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ env.REPOSITORY_NAME }}/main/.alert-menta.user.yaml" && echo "CONFIG_FILE=./.alert-menta.user.yaml" >> $GITHUB_ENV
 
+      - name: Extract command and intent
+        id: extract_command
+        run: |
+          COMMENT_BODY="${{ github.event.comment.body }}"
+          COMMAND=$(echo "$COMMENT_BODY" | sed -E 's|^/([^ ]*).*|\1|')
+          echo "COMMAND=$COMMAND" >> $GITHUB_ENV
+          
+          if [[ "$COMMENT_BODY" == "/$COMMAND "* ]]; then
+            INTENT=$(echo "$COMMENT_BODY" | sed -E "s|^/$COMMAND ||")
+            echo "INTENT=$INTENT" >> $GITHUB_ENV
+          fi
+          
+          COMMANDS_CHECK=$(yq e '.ai.commands[] | keys' .alert-menta.user.yaml | grep -c "$COMMAND" || echo "0")
+          if [ "$COMMANDS_CHECK" -eq "0" ]; then
+            echo "Invalid command: $COMMAND. Command not found in configuration."
+            exit 1
+          fi
+
       - name: Add Comment
         run: |
-          if [[ "$COMMAND" == "ask" ]]; then
+          if [ -n "$INTENT" ]; then
             ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -github-token ${{ secrets.GH_TOKEN }} -api-key ${{ secrets.OPENAI_API_KEY }} -command $COMMAND -config $CONFIG_FILE -intent "$INTENT"
           else
             ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -github-token ${{ secrets.GH_TOKEN }} -api-key ${{ secrets.OPENAI_API_KEY }} -command $COMMAND -config $CONFIG_FILE

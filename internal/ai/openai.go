@@ -17,7 +17,10 @@ type OpenAI struct {
 func (ai *OpenAI) GetResponse(prompt *Prompt) (string, error) {
 	// Create a new OpenAI client
 	keyCredential := azcore.NewKeyCredential(ai.apiKey)
-	client, _ := azopenai.NewClientForOpenAI("https://api.openai.com/v1/", keyCredential, nil)
+	client, err := azopenai.NewClientForOpenAI("https://api.openai.com/v1/", keyCredential, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create OpenAI client: %w", err)
+	}
 
 	// Convert images to base64
 	base64Images := func(images []Image) []string {
@@ -29,11 +32,11 @@ func (ai *OpenAI) GetResponse(prompt *Prompt) (string, error) {
 	}(prompt.Images)
 
 	// create a user prompt with text and images
-	user_prompt := []azopenai.ChatCompletionRequestMessageContentPartClassification{
+	userPrompt := []azopenai.ChatCompletionRequestMessageContentPartClassification{
 		&azopenai.ChatCompletionRequestMessageContentPartText{Text: &prompt.UserPrompt},
 	}
 	for _, image := range base64Images {
-		user_prompt = append(user_prompt, &azopenai.ChatCompletionRequestMessageContentPartImage{ImageURL: &azopenai.ChatCompletionRequestMessageContentPartImageURL{URL: &image}})
+		userPrompt = append(userPrompt, &azopenai.ChatCompletionRequestMessageContentPartImage{ImageURL: &azopenai.ChatCompletionRequestMessageContentPartImageURL{URL: &image}})
 	}
 
 	// Create a chat request with the prompt
@@ -42,7 +45,7 @@ func (ai *OpenAI) GetResponse(prompt *Prompt) (string, error) {
 			Content: azopenai.NewChatRequestSystemMessageContent(prompt.SystemPrompt),
 		},
 		&azopenai.ChatRequestUserMessage{
-			Content: azopenai.NewChatRequestUserMessageContent(user_prompt),
+			Content: azopenai.NewChatRequestUserMessageContent(userPrompt),
 		},
 	}
 

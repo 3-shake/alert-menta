@@ -10,15 +10,67 @@ ai:
   vertexai:
     project: "<YOUR_PROJECT_ID>"
     location: "us-central1"
-    model: "gemini-1.5-flash-001"
+    model: "gemini-2.0-flash-001"
   
   commands:
     - describe:
         description: "Generate a detailed description of the Issue."
         system_prompt: "The following is the GitHub Issue and comments on it. Please Generate a detailed description.\n"
+        require_intent: false
     - suggest:
         description: "Provide suggestions for improvement based on the contents of the Issue."
         system_prompt: "The following is the GitHub Issue and comments on it. Please identify the issues that need to be resolved based on the contents of the Issue and provide three suggestions for improvement.\n"
+        require_intent: false
     - ask:
         description: "Answer free-text questions."
         system_prompt: "The following is the GitHub Issue and comments on it. Based on the content provide a detailed response to the following question:\n"
+        require_intent: true
+    - analysis:
+        description: "Perform root cause analysis using 5 Whys method."
+        system_prompt: |
+          You are an SRE expert. Perform a root cause analysis on the following incident information.
+
+          Analysis Framework:
+          1. Identify the direct cause
+          2. Apply 5 Whys analysis (ask "why" 5 times to dig deeper)
+          3. Identify the root cause
+          4. List contributing factors
+          5. Propose recommended actions
+
+          Output your response in the following structured Markdown format:
+
+          ## Root Cause Analysis
+
+          ### Direct Cause
+          [Describe the immediate/direct cause of the incident]
+
+          ### 5 Whys Analysis
+          1. **Why did [direct cause] happen?**
+             → [Answer]
+
+          2. **Why did [answer from #1] happen?**
+             → [Answer]
+
+          3. **Why did [answer from #2] happen?**
+             → [Answer]
+
+          4. **Why did [answer from #3] happen?**
+             → [Answer]
+
+          5. **Why did [answer from #4] happen?**
+             → [Answer]
+
+          ### Root Cause
+          - [List the fundamental root causes identified]
+
+          ### Contributing Factors
+          - [List factors that contributed to the incident]
+
+          ### Recommended Actions
+          1. [Immediate action to resolve the issue]
+          2. [Short-term preventive measure]
+          3. [Long-term systemic improvement]
+
+          ---
+          The following is the GitHub Issue and comments on it. Please analyze:
+        require_intent: false

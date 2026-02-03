@@ -25,7 +25,7 @@ ai:
 	if err != nil {
 		t.Fatalf("Error creating temporary config file: %v", err)
 	}
-	defer os.Remove(tempFile.Name()) // Clean up after the test
+	defer func() { _ = os.Remove(tempFile.Name()) }() // Clean up after the test
 
 	if _, err := tempFile.Write([]byte(configContent)); err != nil {
 		t.Fatalf("Error writing to temporary config file: %v", err)
@@ -41,8 +41,8 @@ ai:
 	}
 
 	// Validate: Check if the values are correctly parsed
-	if cfg.System.Debug.Log_level != "debug" {
-		t.Errorf("Expected log_level 'debug', got '%s'", cfg.System.Debug.Log_level)
+	if cfg.System.Debug.LogLevel != "debug" {
+		t.Errorf("Expected log_level 'debug', got '%s'", cfg.System.Debug.LogLevel)
 	}
 	if cfg.Ai.Provider != "openai" {
 		t.Errorf("Expected provider 'openai', got '%s'", cfg.Ai.Provider)
@@ -53,7 +53,7 @@ ai:
 	if cfg.Ai.Commands["command1"].Description != "Test command" {
 		t.Errorf("Expected command description 'Test command', got '%s'", cfg.Ai.Commands["command1"].Description)
 	}
-	if cfg.Ai.Commands["command1"].System_prompt != "Prompt" {
-		t.Errorf("Expected system_prompt 'Prompt', got '%s'", cfg.Ai.Commands["command1"].System_prompt)
+	if cfg.Ai.Commands["command1"].SystemPrompt != "Prompt" {
+		t.Errorf("Expected system_prompt 'Prompt', got '%s'", cfg.Ai.Commands["command1"].SystemPrompt)
 	}
 }

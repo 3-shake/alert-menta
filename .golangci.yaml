@@ -1,10 +1,44 @@
+version: "2"
+
+run:
+  timeout: 5m
+  go: "1.23"
+
 linters:
-  disable-all: true
   enable:
-    - govet
-    - gofmt
-    - staticcheck
+    # Default (already enabled, but explicit)
     - errcheck
+    - govet
     - ineffassign
+    - staticcheck
     - unused
-    - gosimple
+    # Security
+    - gosec
+    # Code quality
+    - misspell
+    - unconvert
+    - unparam
+    - bodyclose
+    - nilerr
+    - errorlint
+    # Maintainability
+    - gocyclo
+    - nestif
+
+  settings:
+    gocyclo:
+      min-complexity: 25
+    nestif:
+      min-complexity: 4
+
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - gosec
+          - errcheck
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
