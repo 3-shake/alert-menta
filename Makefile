@@ -1,6 +1,6 @@
 # alert-menta Makefile
 
-.PHONY: all build test test-verbose test-e2e lint lint-fix fmt vet clean help deps deps-update tools dev-setup ci coverage release-dry-run security vuln
+.PHONY: all build test test-verbose test-e2e lint lint-fix fmt vet clean help deps deps-update tools dev-setup ci coverage release-dry-run security vuln docker docker-build docker-push docker-run
 
 # Versions
 GO_VERSION := 1.23
@@ -12,6 +12,11 @@ VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev
 COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "none")
 DATE := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 LDFLAGS := -s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)
+
+# Docker
+DOCKER_IMAGE := alert-menta
+DOCKER_TAG := $(VERSION)
+DOCKER_REGISTRY := ghcr.io/3-shake
 
 all: lint test build
 
@@ -98,29 +103,70 @@ vuln:
 	@echo "Checking for vulnerabilities..."
 	govulncheck ./...
 
+## Docker
+docker: docker-build
+
+docker-build:
+	@echo "Building Docker image..."
+	docker build \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg COMMIT=$(COMMIT) \
+		--build-arg DATE=$(DATE) \
+		-t $(DOCKER_IMAGE):$(DOCKER_TAG) \
+		-t $(DOCKER_IMAGE):latest \
+		.
+
+docker-push: docker-build
+	docker tag $(DOCKER_IMAGE):$(DOCKER_TAG) $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):$(DOCKER_TAG)
+	docker tag $(DOCKER_IMAGE):latest $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):latest
+	docker push $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):$(DOCKER_TAG)
+	docker push $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):latest
+
+docker-run:
+	docker run --rm -it \
+		-e GITHUB_TOKEN \
+		-e OPENAI_API_KEY \
+		-v $(PWD)/.alert-menta.user.yaml:/app/config.yaml:ro \
+		$(DOCKER_IMAGE):latest -config /app/config.yaml -help
+
 ## Help
 help:
 	@echo "Usage: make [target]"
 	@echo ""
-	@echo "Targets:"
-	@echo "  all             Run lint, test, and build"
+	@echo "Build:"
 	@echo "  build           Build all binaries with version info"
 	@echo "  build-main      Build only the main CLI binary"
+	@echo "  clean           Remove build artifacts"
+	@echo ""
+	@echo "Test:"
 	@echo "  test            Run tests with race detection and coverage"
 	@echo "  test-verbose    Run tests with verbose output"
-	@echo "  test-e2e        Run E2E tests (requires GITHUB_TOKEN and OPENAI_API_KEY)"
+	@echo "  test-e2e        Run E2E tests (requires GITHUB_TOKEN, OPENAI_API_KEY)"
 	@echo "  coverage        Generate HTML coverage report"
+	@echo ""
+	@echo "Quality:"
 	@echo "  lint            Run golangci-lint"
 	@echo "  lint-fix        Run golangci-lint with auto-fix"
 	@echo "  fmt             Format code with gofmt and gofumpt"
 	@echo "  vet             Run go vet"
+	@echo "  security        Run security checks (gosec)"
+	@echo "  vuln            Check for known vulnerabilities (govulncheck)"
+	@echo ""
+	@echo "Docker:"
+	@echo "  docker-build    Build Docker image"
+	@echo "  docker-push     Push Docker image to registry"
+	@echo "  docker-run      Run Docker container"
+	@echo ""
+	@echo "Dependencies:"
 	@echo "  deps            Tidy and verify dependencies"
 	@echo "  deps-update     Update dependencies"
 	@echo "  tools           Install development tools"
-	@echo "  security        Run security checks (gosec)"
-	@echo "  vuln            Check for known vulnerabilities (govulncheck)"
-	@echo "  clean           Remove build artifacts"
-	@echo "  dev-setup       Set up development environment"
+	@echo ""
+	@echo "CI/CD:"
 	@echo "  ci              Run CI checks (lint, test, build)"
 	@echo "  release-dry-run Test release with goreleaser"
+	@echo "  all             Run lint, test, and build"
+	@echo ""
+	@echo "Other:"
+	@echo "  dev-setup       Set up development environment"
 	@echo "  help            Show this help"
