@@ -25,11 +25,11 @@ type Config struct {
 
 // TriageConfig holds auto-triage configuration
 type TriageConfig struct {
-	Enabled             bool                  `yaml:"enabled" mapstructure:"enabled"`
-	AutoLabel           bool                  `yaml:"auto_label" mapstructure:"auto_label"`
-	AutoComment         bool                  `yaml:"auto_comment" mapstructure:"auto_comment"`
-	ConfidenceThreshold float64               `yaml:"confidence_threshold" mapstructure:"confidence_threshold"`
-	Labels              TriageLabelConfig     `yaml:"labels" mapstructure:"labels"`
+	Enabled             bool              `yaml:"enabled" mapstructure:"enabled"`
+	AutoLabel           bool              `yaml:"auto_label" mapstructure:"auto_label"`
+	AutoComment         bool              `yaml:"auto_comment" mapstructure:"auto_comment"`
+	ConfidenceThreshold float64           `yaml:"confidence_threshold" mapstructure:"confidence_threshold"`
+	Labels              TriageLabelConfig `yaml:"labels" mapstructure:"labels"`
 }
 
 // TriageLabelConfig holds label configurations for triage
@@ -46,12 +46,12 @@ type TriageLabelDef struct {
 
 // FirstResponseConfig holds first response guide configuration
 type FirstResponseConfig struct {
-	Enabled       bool                      `yaml:"enabled" mapstructure:"enabled"`
-	TriggerLabels []string                  `yaml:"trigger_labels" mapstructure:"trigger_labels"`
-	Guides        []FirstResponseGuide      `yaml:"guides" mapstructure:"guides"`
-	DefaultGuide  string                    `yaml:"default_guide" mapstructure:"default_guide"`
-	SlackChannel  string                    `yaml:"slack_channel" mapstructure:"slack_channel"`
-	Escalation    FirstResponseEscalation   `yaml:"escalation" mapstructure:"escalation"`
+	Enabled       bool                    `yaml:"enabled" mapstructure:"enabled"`
+	TriggerLabels []string                `yaml:"trigger_labels" mapstructure:"trigger_labels"`
+	Guides        []FirstResponseGuide    `yaml:"guides" mapstructure:"guides"`
+	DefaultGuide  string                  `yaml:"default_guide" mapstructure:"default_guide"`
+	SlackChannel  string                  `yaml:"slack_channel" mapstructure:"slack_channel"`
+	Escalation    FirstResponseEscalation `yaml:"escalation" mapstructure:"escalation"`
 }
 
 // FirstResponseGuide holds configuration for severity-specific guides
@@ -99,8 +99,8 @@ type Ai struct {
 
 // FallbackConfig holds fallback provider configuration
 type FallbackConfig struct {
-	Enabled   bool     `yaml:"enabled"`
-	Providers []string `yaml:"providers" mapstructure:"providers"`
+	Enabled   bool        `yaml:"enabled"`
+	Providers []string    `yaml:"providers" mapstructure:"providers"`
 	Retry     RetryConfig `yaml:"retry"`
 }
 
