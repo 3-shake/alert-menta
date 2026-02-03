@@ -1,0 +1,38 @@
+# Example workflow for first response guide
+# Copy this file to .github/workflows/first-response.yaml and customize
+
+name: "First Response Guide"
+run-name: Post incident response guide
+
+on:
+  issues:
+    types: [opened, labeled]
+
+jobs:
+  first-response:
+    # Only trigger for issues with incident-related labels
+    if: contains(github.event.issue.labels.*.name, 'incident') || contains(github.event.issue.labels.*.name, 'alert')
+    runs-on: ubuntu-24.04
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Download and Install alert-menta
+        run: |
+          curl -sLJO -H 'Accept: application/octet-stream' \
+          "https://${{ secrets.GH_TOKEN }}@api.github.com/repos/3-shake/alert-menta/releases/assets/$( \
+          curl -sL "https://${{ secrets.GH_TOKEN }}@api.github.com/repos/3-shake/alert-menta/releases/latest" \
+          | jq '.assets[] | select(.name | contains("Linux_x86")) | .id')"
+          tar -zxvf alert-menta_Linux_x86_64.tar.gz
+
+      - name: Post First Response Guide
+        run: |
+          ./alert-menta-firstresponse \
+            -owner ${{ github.repository_owner }} \
+            -repo ${{ github.event.repository.name }} \
+            -issue ${{ github.event.issue.number }} \
+            -github-token ${{ secrets.GH_TOKEN }} \
+            -config .alert-menta.user.yaml

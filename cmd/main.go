@@ -9,23 +9,33 @@ import (
 
 	"github.com/3-shake/alert-menta/internal/ai"
 	"github.com/3-shake/alert-menta/internal/github"
+	"github.com/3-shake/alert-menta/internal/slack"
 	"github.com/3-shake/alert-menta/internal/utils"
 )
 
-// Struct to hold the command-line arguments
+// Version information (set via ldflags)
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
+// Config holds command-line arguments
 type Config struct {
-	repo        string
-	owner       string
-	issueNumber int
-	intent      string
-	command     string
-	configFile  string
-	ghToken     string
-	oaiKey      string
+	repo            string
+	owner           string
+	issueNumber     int
+	intent          string
+	command         string
+	configFile      string
+	ghToken         string
+	oaiKey          string
+	slackWebhookURL string
 }
 
 func main() {
 	cfg := &Config{}
+	showVersion := flag.Bool("version", false, "Show version information")
 	flag.StringVar(&cfg.repo, "repo", "", "Repository name")
 	flag.StringVar(&cfg.owner, "owner", "", "Repository owner")
 	flag.IntVar(&cfg.issueNumber, "issue", 0, "Issue number")
@@ -34,7 +44,15 @@ func main() {
 	flag.StringVar(&cfg.configFile, "config", "", "Configuration file")
 	flag.StringVar(&cfg.ghToken, "github-token", "", "GitHub token")
 	flag.StringVar(&cfg.oaiKey, "api-key", "", "OpenAI api key")
+	flag.StringVar(&cfg.slackWebhookURL, "slack-webhook-url", "", "Slack webhook URL for notifications (optional)")
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("alert-menta %s\n", version)
+		fmt.Printf("  commit: %s\n", commit)
+		fmt.Printf("  built:  %s\n", date)
+		os.Exit(0)
+	}
 
 	if cfg.repo == "" || cfg.owner == "" || cfg.issueNumber == 0 || cfg.ghToken == "" || cfg.command == "" || cfg.configFile == "" {
 		flag.PrintDefaults()
@@ -117,6 +135,11 @@ func main() {
 
 	if err := issue.PostComment(comment); err != nil {
 		logger.Fatalf("Error creating comment: %v", err)
+	}
+
+	// Send Slack notification if configured
+	if err := sendSlackNotification(cfg, loadedcfg, issue, comment, logger); err != nil {
+		logger.Printf("Warning: failed to send Slack notification: %v", err)
 	}
 }
 
@@ -207,22 +230,46 @@ func constructUserPrompt(ghToken string, issue *github.GitHubIssue, cfg *utils.C
 
 // Construct AI prompt
 func constructPrompt(command, intent, userPrompt string, imgs []ai.Image, cfg *utils.Config, logger *log.Logger) (*ai.Prompt, error) {
+	cmdConfig := cfg.Ai.Commands[command]
 	var systemPrompt string
-	if cfg.Ai.Commands[command].RequireIntent {
+	if cmdConfig.RequireIntent {
 		if intent == "" {
 			return nil, fmt.Errorf("intent is required for '%s' command", command)
 		}
-		systemPrompt = cfg.Ai.Commands[command].SystemPrompt + intent + "\n"
+		systemPrompt = cmdConfig.SystemPrompt + intent + "\n"
 	} else {
-		systemPrompt = cfg.Ai.Commands[command].SystemPrompt
+		systemPrompt = cmdConfig.SystemPrompt
 	}
 	logger.Println("\x1b[34mPrompt: |\n", systemPrompt, userPrompt, "\x1b[0m")
-	return &ai.Prompt{UserPrompt: userPrompt, SystemPrompt: systemPrompt, Images: imgs}, nil
+
+	prompt := &ai.Prompt{UserPrompt: userPrompt, SystemPrompt: systemPrompt, Images: imgs}
+
+	// Add structured output options if configured
+	if cmdConfig.StructuredOutput != nil && cmdConfig.StructuredOutput.Enabled {
+		logger.Println("Structured output enabled for command:", command)
+		prompt.StructuredOutput = &ai.StructuredOutputOptions{
+			Enabled:    true,
+			SchemaName: cmdConfig.StructuredOutput.SchemaName,
+			Schema:     cmdConfig.StructuredOutput.Schema,
+		}
+	}
+
+	return prompt, nil
 }
 
 // Initialize AI client
 func getAIClient(oaiKey string, cfg *utils.Config, logger *log.Logger) (ai.Ai, error) {
-	switch cfg.Ai.Provider {
+	// Check if fallback is enabled
+	if cfg.Ai.Fallback.Enabled && len(cfg.Ai.Fallback.Providers) > 0 {
+		return getAIClientWithFallback(oaiKey, cfg, logger)
+	}
+
+	return getSingleAIClient(cfg.Ai.Provider, oaiKey, cfg, logger)
+}
+
+// getSingleAIClient creates a single AI client for the given provider
+func getSingleAIClient(provider, oaiKey string, cfg *utils.Config, logger *log.Logger) (ai.Ai, error) {
+	switch provider {
 	case "openai":
 		if oaiKey == "" {
 			return nil, fmt.Errorf("OpenAI API key is required")
@@ -238,7 +285,95 @@ func getAIClient(oaiKey string, cfg *utils.Config, logger *log.Logger) (ai.Ai, e
 			return nil, fmt.Errorf("new Vertex AI client: %w", err)
 		}
 		return aic, nil
+	case "anthropic":
+		if oaiKey == "" {
+			return nil, fmt.Errorf("anthropic API key is required")
+		}
+		logger.Println("Using Anthropic API")
+		logger.Println("Anthropic model:", cfg.Ai.Anthropic.Model)
+		return ai.NewAnthropicClient(oaiKey, cfg.Ai.Anthropic.Model), nil
 	default:
-		return nil, fmt.Errorf("invalid provider: %s", cfg.Ai.Provider)
+		return nil, fmt.Errorf("invalid provider: %s", provider)
 	}
+}
+
+// getAIClientWithFallback creates a fallback client with multiple providers
+func getAIClientWithFallback(oaiKey string, cfg *utils.Config, logger *log.Logger) (ai.Ai, error) {
+	logger.Println("Fallback mode enabled")
+	logger.Printf("Provider order: %v", cfg.Ai.Fallback.Providers)
+
+	var clients []ai.Ai
+	var names []string
+
+	for _, provider := range cfg.Ai.Fallback.Providers {
+		client, err := getSingleAIClient(provider, oaiKey, cfg, logger)
+		if err != nil {
+			logger.Printf("Warning: could not initialize provider %s: %v", provider, err)
+			continue
+		}
+		clients = append(clients, client)
+		names = append(names, provider)
+	}
+
+	if len(clients) == 0 {
+		return nil, fmt.Errorf("no valid providers configured for fallback")
+	}
+
+	fallbackConfig := ai.FallbackClientConfig{
+		MaxRetries: cfg.Ai.Fallback.Retry.MaxRetries,
+		DelayMs:    cfg.Ai.Fallback.Retry.DelayMs,
+		Logger:     logger,
+	}
+
+	return ai.NewFallbackClient(clients, names, fallbackConfig), nil
+}
+
+// sendSlackNotification sends a notification to Slack if configured
+func sendSlackNotification(cfg *Config, loadedcfg *utils.Config, issue *github.GitHubIssue, response string, logger *log.Logger) error {
+	// Determine webhook URL (CLI flag takes precedence over config)
+	webhookURL := cfg.slackWebhookURL
+	if webhookURL == "" && loadedcfg.Notifications.Slack.Enabled {
+		webhookURL = loadedcfg.Notifications.Slack.WebhookURL
+	}
+
+	// No Slack notification configured
+	if webhookURL == "" {
+		return nil
+	}
+
+	// Check if command_response notification is enabled
+	if loadedcfg.Notifications.Slack.Enabled {
+		notifyOn := loadedcfg.Notifications.Slack.NotifyOn
+		if len(notifyOn) > 0 && !contains(notifyOn, "command_response") {
+			logger.Println("Slack notification skipped: command_response not in notify_on list")
+			return nil
+		}
+	}
+
+	// Get issue details for notification
+	title, err := issue.GetTitle()
+	if err != nil {
+		return fmt.Errorf("getting issue title for Slack: %w", err)
+	}
+
+	issueURL := fmt.Sprintf("https://github.com/%s/%s/issues/%d", cfg.owner, cfg.repo, cfg.issueNumber)
+
+	// Create Slack client and send notification
+	slackClient := slack.NewClient(webhookURL, loadedcfg.Notifications.Slack.Channel)
+	if err := slackClient.SendCommandResponse(*title, issueURL, cfg.command, response); err != nil {
+		return fmt.Errorf("sending Slack notification: %w", err)
+	}
+
+	logger.Println("Slack notification sent successfully")
+	return nil
+}
+
+// contains checks if a string slice contains a specific string
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
 }
