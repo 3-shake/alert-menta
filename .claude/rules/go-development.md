@@ -19,7 +19,7 @@ make test-e2e
 
 ## Go Version & Tools
 
-- Go 1.23 (specified in `go.mod`)
+- Go 1.24 (specified in `go.mod`)
 - golangci-lint v2.8.0 (golangci-lint-action v7)
 - Install tools: `make tools`
 

@@ -3,7 +3,7 @@
 .PHONY: all build test test-verbose test-e2e lint lint-fix fmt vet clean help deps deps-update tools dev-setup ci coverage release-dry-run security vuln docker docker-build docker-push docker-run
 
 # Versions
-GO_VERSION := 1.23
+GO_VERSION := 1.24
 GOLANGCI_LINT_VERSION := v2.8.0
 
 # Build
