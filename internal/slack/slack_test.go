@@ -47,7 +47,6 @@ func TestSendCommandResponse(t *testing.T) {
 		"describe",
 		"This is a test response",
 	)
-
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -80,7 +79,6 @@ func TestSendIncidentNotification(t *testing.T) {
 		"https://github.com/test/repo/issues/2",
 		"API server is down",
 	)
-
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -118,7 +116,6 @@ func TestSendCommandResponse_TruncatesLongResponse(t *testing.T) {
 		"describe",
 		longResponse,
 	)
-
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

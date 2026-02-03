@@ -4,10 +4,10 @@ import "time"
 
 // Config holds the first response guide configuration
 type Config struct {
-	Enabled       bool            `yaml:"enabled" mapstructure:"enabled"`
-	TriggerLabels []string        `yaml:"trigger_labels" mapstructure:"trigger_labels"`
-	Guides        []GuideConfig   `yaml:"guides" mapstructure:"guides"`
-	DefaultGuide  string          `yaml:"default_guide" mapstructure:"default_guide"`
+	Enabled       bool             `yaml:"enabled" mapstructure:"enabled"`
+	TriggerLabels []string         `yaml:"trigger_labels" mapstructure:"trigger_labels"`
+	Guides        []GuideConfig    `yaml:"guides" mapstructure:"guides"`
+	DefaultGuide  string           `yaml:"default_guide" mapstructure:"default_guide"`
 	Escalation    EscalationConfig `yaml:"escalation" mapstructure:"escalation"`
 }
 

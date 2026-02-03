@@ -251,7 +251,7 @@ func (s *Server) getSingleAIClient(provider string) (ai.Ai, error) {
 		return ai.NewOpenAIClient(s.aiKey, s.config.Ai.OpenAI.Model), nil
 	case "anthropic":
 		if s.aiKey == "" {
-			return nil, fmt.Errorf("Anthropic API key is required")
+			return nil, fmt.Errorf("anthropic API key is required")
 		}
 		return ai.NewAnthropicClient(s.aiKey, s.config.Ai.Anthropic.Model), nil
 	case "vertexai":

@@ -109,11 +109,11 @@ func isRetryableError(err error) bool {
 		"connection reset",
 		"temporary failure",
 		"rate limit",
-		"429",          // Too Many Requests
-		"500",          // Internal Server Error
-		"502",          // Bad Gateway
-		"503",          // Service Unavailable
-		"504",          // Gateway Timeout
+		"429", // Too Many Requests
+		"500", // Internal Server Error
+		"502", // Bad Gateway
+		"503", // Service Unavailable
+		"504", // Gateway Timeout
 		"server error",
 		"service unavailable",
 	}
