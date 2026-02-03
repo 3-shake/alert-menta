@@ -373,6 +373,33 @@ first_response:
     timeout_minutes: 15  # Escalation timeout for high severity
     notify_target: "@oncall"
 
+# Auto-Triage settings (#63)
+# Automatically assigns labels and comments on new issues
+triage:
+  enabled: false  # Set to true to enable auto-triage
+  auto_label: true  # Automatically add labels based on triage
+  auto_comment: true  # Post triage result as comment
+  confidence_threshold: 0.7  # Minimum confidence to apply labels (0.0-1.0)
+  labels:
+    priority:
+      - name: "priority:critical"
+        criteria: "Production service outage, data loss risk"
+      - name: "priority:high"
+        criteria: "User impact, requires urgent attention"
+      - name: "priority:medium"
+        criteria: "Feature degradation but workaround exists"
+      - name: "priority:low"
+        criteria: "Improvement request, minor issue"
+    category:
+      - name: "type:bug"
+        criteria: "Bug report for existing functionality"
+      - name: "type:feature"
+        criteria: "New feature request or enhancement"
+      - name: "type:docs"
+        criteria: "Documentation update or fix"
+      - name: "type:incident"
+        criteria: "Incident report, alert, or outage"
+
 # Slack notification settings
 notifications:
   slack:

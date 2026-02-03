@@ -83,6 +83,18 @@ func (gh *GitHubIssue) PostComment(commentBody string) error {
 	return nil
 }
 
+func (gh *GitHubIssue) AddLabels(labels []string) error {
+	if len(labels) == 0 {
+		return nil
+	}
+	_, _, err := gh.client.Issues.AddLabelsToIssue(gh.ctx, gh.owner, gh.repo, gh.issueNumber, labels)
+	if err != nil {
+		return fmt.Errorf("error adding labels: %w", err)
+	}
+	gh.logger.Printf("Labels %v added successfully to Issue %d", labels, gh.issueNumber)
+	return nil
+}
+
 func NewIssue(owner string, repo string, issueNumber int, token string) *GitHubIssue {
 	// Create GitHub client with OAuth2 token
 	ctx := context.Background()

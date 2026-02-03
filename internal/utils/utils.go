@@ -20,6 +20,28 @@ type Config struct {
 	Ai            Ai                  `yaml:"ai"`
 	Notifications Notifications       `yaml:"notifications"`
 	FirstResponse FirstResponseConfig `yaml:"first_response" mapstructure:"first_response"`
+	Triage        TriageConfig        `yaml:"triage" mapstructure:"triage"`
+}
+
+// TriageConfig holds auto-triage configuration
+type TriageConfig struct {
+	Enabled             bool                  `yaml:"enabled" mapstructure:"enabled"`
+	AutoLabel           bool                  `yaml:"auto_label" mapstructure:"auto_label"`
+	AutoComment         bool                  `yaml:"auto_comment" mapstructure:"auto_comment"`
+	ConfidenceThreshold float64               `yaml:"confidence_threshold" mapstructure:"confidence_threshold"`
+	Labels              TriageLabelConfig     `yaml:"labels" mapstructure:"labels"`
+}
+
+// TriageLabelConfig holds label configurations for triage
+type TriageLabelConfig struct {
+	Priority []TriageLabelDef `yaml:"priority" mapstructure:"priority"`
+	Category []TriageLabelDef `yaml:"category" mapstructure:"category"`
+}
+
+// TriageLabelDef defines a label and its criteria
+type TriageLabelDef struct {
+	Name     string `yaml:"name" mapstructure:"name"`
+	Criteria string `yaml:"criteria" mapstructure:"criteria"`
 }
 
 // FirstResponseConfig holds first response guide configuration
