@@ -3,7 +3,6 @@ package ai
 import (
 	"context"
 	"fmt"
-	"log"
 	"reflect"
 
 	"cloud.google.com/go/vertexai/genai"
@@ -17,20 +16,19 @@ type VertexAI struct {
 
 func (ai *VertexAI) GetResponse(prompt *Prompt) (string, error) {
 	model := ai.client.GenerativeModel(ai.model)
-	//Temperature recommended by LLM
+	// Temperature recommended by LLM
 	model.SetTemperature(0.5)
 
-	integrated_prompt := []genai.Part{} // image + text prompt
+	integratedPrompt := []genai.Part{} // image + text prompt
 	for _, image := range prompt.Images {
-		integrated_prompt = append(integrated_prompt, genai.ImageData(image.Extension, image.Data))
+		integratedPrompt = append(integratedPrompt, genai.ImageData(image.Extension, image.Data))
 	}
-	integrated_prompt = append(integrated_prompt, genai.Text(prompt.SystemPrompt+prompt.UserPrompt))
+	integratedPrompt = append(integratedPrompt, genai.Text(prompt.SystemPrompt+prompt.UserPrompt))
 
 	// Generate AI response
-	resp, err := model.GenerateContent(ai.context, integrated_prompt...)
+	resp, err := model.GenerateContent(ai.context, integratedPrompt...)
 	if err != nil {
-		log.Fatal(err)
-		return "", err
+		return "", fmt.Errorf("GenerateContent error: %w", err)
 	}
 
 	return getResponseText(resp), nil

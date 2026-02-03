@@ -106,7 +106,7 @@ func main() {
 
 	aic, err := getAIClient(cfg.oaiKey, loadedcfg, logger)
 	if err != nil {
-		logger.Fatalf("Error geting AI client: %v", err)
+		logger.Fatalf("Error getting AI client: %v", err)
 	}
 
 	comment, err := aic.GetResponse(prompt)
@@ -127,7 +127,7 @@ func validateCommand(command string, cfg *utils.Config) error {
 		for cmd := range cfg.Ai.Commands {
 			allowedCommands = append(allowedCommands, cmd)
 		}
-		return fmt.Errorf("Invalid command: %s. Allowed commands are %s", command, strings.Join(allowedCommands, ", "))
+		return fmt.Errorf("invalid command: %s, allowed commands are %s", command, strings.Join(allowedCommands, ", "))
 	}
 	return nil
 }
@@ -137,11 +137,11 @@ func commandNeedsIntent(command string, cfg *utils.Config) (bool, error) {
 	// Get the command configuration
 	cmd, ok := cfg.Ai.Commands[command]
 	if !ok {
-		return false, fmt.Errorf("Command not found: %s", command)
+		return false, fmt.Errorf("command not found: %s", command)
 	}
 
 	// Check if this command requires intent
-	return cmd.Require_intent, nil
+	return cmd.RequireIntent, nil
 }
 
 // Get available commands with descriptions for usage message
@@ -159,12 +159,12 @@ func constructUserPrompt(ghToken string, issue *github.GitHubIssue, cfg *utils.C
 
 	title, err := issue.GetTitle()
 	if err != nil {
-		return "", nil, fmt.Errorf("Error getting Title: %w", err)
+		return "", nil, fmt.Errorf("getting title: %w", err)
 	}
 
 	body, err := issue.GetBody()
 	if err != nil {
-		return "", nil, fmt.Errorf("Error getting Body: %w", err)
+		return "", nil, fmt.Errorf("getting body: %w", err)
 	}
 
 	var userPrompt strings.Builder
@@ -181,14 +181,14 @@ func constructUserPrompt(ghToken string, issue *github.GitHubIssue, cfg *utils.C
 
 	comments, err := issue.GetComments()
 	if err != nil {
-		return "", nil, fmt.Errorf("Error getting comments: %w", err)
+		return "", nil, fmt.Errorf("getting comments: %w", err)
 	}
 
 	for _, v := range comments {
 		if *v.User.Login == "github-actions[bot]" {
 			continue
 		}
-		if cfg.System.Debug.Log_level == "debug" {
+		if cfg.System.Debug.LogLevel == "debug" {
 			logger.Printf("%s: %s", *v.User.Login, *v.Body)
 		}
 		userPrompt.WriteString(*v.User.Login + ":" + *v.Body + "\n")
@@ -197,7 +197,7 @@ func constructUserPrompt(ghToken string, issue *github.GitHubIssue, cfg *utils.C
 		for _, url := range urls {
 			imgData, ext, err := utils.DownloadImage(url, ghToken)
 			if err != nil {
-				return "", nil, fmt.Errorf("Error downloading image: %w", err)
+				return "", nil, fmt.Errorf("downloading image: %w", err)
 			}
 			images = append(images, ai.Image{Data: imgData, Extension: ext})
 		}
@@ -208,13 +208,13 @@ func constructUserPrompt(ghToken string, issue *github.GitHubIssue, cfg *utils.C
 // Construct AI prompt
 func constructPrompt(command, intent, userPrompt string, imgs []ai.Image, cfg *utils.Config, logger *log.Logger) (*ai.Prompt, error) {
 	var systemPrompt string
-	if cfg.Ai.Commands[command].Require_intent {
+	if cfg.Ai.Commands[command].RequireIntent {
 		if intent == "" {
-			return nil, fmt.Errorf("Error: intent is required for '%s' command", command)
+			return nil, fmt.Errorf("intent is required for '%s' command", command)
 		}
-		systemPrompt = cfg.Ai.Commands[command].System_prompt + intent + "\n"
+		systemPrompt = cfg.Ai.Commands[command].SystemPrompt + intent + "\n"
 	} else {
-		systemPrompt = cfg.Ai.Commands[command].System_prompt
+		systemPrompt = cfg.Ai.Commands[command].SystemPrompt
 	}
 	logger.Println("\x1b[34mPrompt: |\n", systemPrompt, userPrompt, "\x1b[0m")
 	return &ai.Prompt{UserPrompt: userPrompt, SystemPrompt: systemPrompt, Images: imgs}, nil
@@ -225,7 +225,7 @@ func getAIClient(oaiKey string, cfg *utils.Config, logger *log.Logger) (ai.Ai, e
 	switch cfg.Ai.Provider {
 	case "openai":
 		if oaiKey == "" {
-			return nil, fmt.Errorf("Error: Please provide your Open AI API key")
+			return nil, fmt.Errorf("OpenAI API key is required")
 		}
 		logger.Println("Using OpenAI API")
 		logger.Println("OpenAI model:", cfg.Ai.OpenAI.Model)
@@ -235,10 +235,10 @@ func getAIClient(oaiKey string, cfg *utils.Config, logger *log.Logger) (ai.Ai, e
 		logger.Println("VertexAI model:", cfg.Ai.VertexAI.Model)
 		aic, err := ai.NewVertexAIClient(cfg.Ai.VertexAI.Project, cfg.Ai.VertexAI.Region, cfg.Ai.VertexAI.Model)
 		if err != nil {
-			return nil, fmt.Errorf("Error: new Vertex AI client: %w", err)
+			return nil, fmt.Errorf("new Vertex AI client: %w", err)
 		}
 		return aic, nil
 	default:
-		return nil, fmt.Errorf("Error: Invalid provider")
+		return nil, fmt.Errorf("invalid provider: %s", cfg.Ai.Provider)
 	}
 }

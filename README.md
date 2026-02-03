@@ -1,7 +1,6 @@
 # alert-menta
 An innovative tool 🚀 for real-time analysis and management of Issues' alerts. 🔍 It identifies alert causes, proposes actionable solutions, 💡and detailed reports. 📈
 Designed for developers 👨‍💻, managers 📋, and IT teams .💻 Alert-menta enhances productivity and software quality. 🌟
-
 ## Overview of alert-menta
 ### The purpose of alert-menta
 We reduce the burden of system failure response using LLM.
@@ -16,7 +15,7 @@ You can receive support for failure handling that is completed within GitHub.
 - Selectable LLM models (OpenAI, VertexAI)
 - Extensible prompt text
   - Multilingual support
-
+- Allows dialogue that includes images.
 ## How to Use
 Alert-menta is intended to be run on GitHub Actions.
 ### 1. Prepare GitHub PAT
@@ -43,12 +42,13 @@ Execute commands on the Issue. Run commands with a backslash at the beginning (e
 It contains information such as the LLM model to use, system prompt text for each command, etc. The `.alert-menta.user.yaml` in this repository is a template. The contents are as follows:
 ```
 system:
-  debug:
+  debug: 
     log_level: debug
+
 ai:
   provider: "openai" # "openai" or "vertexai"
   openai:
-    model: "gpt-40-mini" # Check the list of available models by curl https://api.openai.com/v1/models -H "Authorization: Bearer $OPENAI_API_KEY"
+    model: "gpt-4o-mini" # Check the list of available models by curl https://api.openai.com/v1/models -H "Authorization: Bearer $OPENAI_API_KEY"
   vertexai:
     project: "<YOUR_PROJECT_ID>"
     location: "us-central1"
@@ -110,7 +110,7 @@ jobs:
         run: |
           curl -sLJO -H 'Accept: application/octet-stream' \
           "https://${{ secrets.GH_TOKEN }}@api.github.com/repos/3-shake/alert-menta/releases/assets/$( \
-          curl -sL "https://${{ secrets.GH_TOKEN }}@api.github.com/repos/3-shake/alert-menta/releases/tags/v0.1.0" \
+          curl -sL "https://${{ secrets.GH_TOKEN }}@api.github.com/repos/3-shake/alert-menta/releases/tags/v0.1.2" \
           | jq '.assets[] | select(.name | contains("Linux_x86")) | .id')"
           tar -zxvf alert-menta_Linux_x86_64.tar.gz
 
