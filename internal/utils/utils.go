@@ -90,9 +90,18 @@ type RetryConfig struct {
 }
 
 type Command struct {
-	Description   string `yaml:"description"`
-	SystemPrompt  string `yaml:"system_prompt" mapstructure:"system_prompt"`
-	RequireIntent bool   `yaml:"require_intent" mapstructure:"require_intent"`
+	Description      string                  `yaml:"description"`
+	SystemPrompt     string                  `yaml:"system_prompt" mapstructure:"system_prompt"`
+	RequireIntent    bool                    `yaml:"require_intent" mapstructure:"require_intent"`
+	StructuredOutput *StructuredOutputConfig `yaml:"structured_output,omitempty" mapstructure:"structured_output"`
+}
+
+// StructuredOutputConfig holds structured output settings for a command
+type StructuredOutputConfig struct {
+	Enabled        bool                   `yaml:"enabled" mapstructure:"enabled"`
+	Schema         map[string]interface{} `yaml:"schema,omitempty" mapstructure:"schema"`
+	SchemaName     string                 `yaml:"schema_name,omitempty" mapstructure:"schema_name"`
+	FallbackToText bool                   `yaml:"fallback_to_text" mapstructure:"fallback_to_text"`
 }
 
 type OpenAI struct {

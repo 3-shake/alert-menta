@@ -215,17 +215,31 @@ func constructUserPrompt(ghToken string, issue *github.GitHubIssue, cfg *utils.C
 
 // Construct AI prompt
 func constructPrompt(command, intent, userPrompt string, imgs []ai.Image, cfg *utils.Config, logger *log.Logger) (*ai.Prompt, error) {
+	cmdConfig := cfg.Ai.Commands[command]
 	var systemPrompt string
-	if cfg.Ai.Commands[command].RequireIntent {
+	if cmdConfig.RequireIntent {
 		if intent == "" {
 			return nil, fmt.Errorf("intent is required for '%s' command", command)
 		}
-		systemPrompt = cfg.Ai.Commands[command].SystemPrompt + intent + "\n"
+		systemPrompt = cmdConfig.SystemPrompt + intent + "\n"
 	} else {
-		systemPrompt = cfg.Ai.Commands[command].SystemPrompt
+		systemPrompt = cmdConfig.SystemPrompt
 	}
 	logger.Println("\x1b[34mPrompt: |\n", systemPrompt, userPrompt, "\x1b[0m")
-	return &ai.Prompt{UserPrompt: userPrompt, SystemPrompt: systemPrompt, Images: imgs}, nil
+
+	prompt := &ai.Prompt{UserPrompt: userPrompt, SystemPrompt: systemPrompt, Images: imgs}
+
+	// Add structured output options if configured
+	if cmdConfig.StructuredOutput != nil && cmdConfig.StructuredOutput.Enabled {
+		logger.Println("Structured output enabled for command:", command)
+		prompt.StructuredOutput = &ai.StructuredOutputOptions{
+			Enabled:    true,
+			SchemaName: cmdConfig.StructuredOutput.SchemaName,
+			Schema:     cmdConfig.StructuredOutput.Schema,
+		}
+	}
+
+	return prompt, nil
 }
 
 // Initialize AI client

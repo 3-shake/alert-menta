@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 
 	"github.com/anthropics/anthropic-sdk-go"
@@ -35,6 +36,17 @@ func (a *Anthropic) GetResponse(prompt *Prompt) (string, error) {
 	// Add text content
 	contentBlocks = append(contentBlocks, anthropic.NewTextBlock(prompt.UserPrompt))
 
+	// Modify system prompt for structured output
+	systemPrompt := prompt.SystemPrompt
+	if prompt.StructuredOutput != nil && prompt.StructuredOutput.Enabled {
+		schemaJSON, err := prompt.StructuredOutput.GetSchemaJSON()
+		if err == nil && schemaJSON != nil {
+			systemPrompt += fmt.Sprintf("\n\nYou MUST respond with valid JSON that conforms to this schema:\n```json\n%s\n```\nRespond ONLY with the JSON object, no additional text.", string(schemaJSON))
+		} else {
+			systemPrompt += "\n\nYou MUST respond with valid JSON. Respond ONLY with the JSON object, no additional text."
+		}
+	}
+
 	// Create the message
 	message, err := client.Messages.New(context.Background(), anthropic.MessageNewParams{
 		Model:     anthropic.Model(a.model),
@@ -42,7 +54,7 @@ func (a *Anthropic) GetResponse(prompt *Prompt) (string, error) {
 		System: []anthropic.TextBlockParam{
 			{
 				Type: "text",
-				Text: prompt.SystemPrompt,
+				Text: systemPrompt,
 			},
 		},
 		Messages: []anthropic.MessageParam{
@@ -58,6 +70,13 @@ func (a *Anthropic) GetResponse(prompt *Prompt) (string, error) {
 	for _, block := range message.Content {
 		if block.Type == "text" {
 			response += block.Text
+		}
+	}
+
+	// Validate JSON output if structured output is enabled
+	if prompt.StructuredOutput != nil && prompt.StructuredOutput.Enabled {
+		if !json.Valid([]byte(response)) {
+			return "", fmt.Errorf("structured output validation failed: response is not valid JSON")
 		}
 	}
 
