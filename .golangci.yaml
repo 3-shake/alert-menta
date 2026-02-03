@@ -1,5 +1,3 @@
-version: "2"
-
 run:
   timeout: 5m
   go: "1.23"
@@ -23,13 +21,9 @@ linters:
     - errorlint
     # Maintainability
     - gocyclo
-    - maintidx
     - nestif
-
-formatters:
-  enable:
+    # Formatting
     - gofmt
-    - gofumpt
     - goimports
 
 linters-settings:
