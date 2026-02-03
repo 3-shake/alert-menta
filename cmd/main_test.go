@@ -41,8 +41,8 @@ func TestConstructPrompt(t *testing.T) {
 	mockCfg := &utils.Config{
 		Ai: utils.Ai{
 			Commands: map[string]utils.Command{
-				"ask":   {System_prompt: "Ask system prompt: "},
-				"other": {System_prompt: "Other system prompt: "},
+				"ask":   {System_prompt: "Ask system prompt: ", Require_intent: true},
+				"other": {System_prompt: "Other system prompt: ", Require_intent: false},
 			},
 		},
 	}
@@ -108,6 +108,58 @@ func TestGetAIClient(t *testing.T) {
 		_, err := getAIClient(tt.oaiKey, mockCfg, log.New(os.Stdout, "", 0))
 		if (err != nil) != tt.expectErr {
 			t.Errorf("expected error: %v, got %v", tt.expectErr, err)
+		}
+	}
+}
+
+// Test for getAvailableCommands
+func TestGetAvailableCommands(t *testing.T) {
+	mockCfg := &utils.Config{
+		Ai: utils.Ai{
+			Commands: map[string]utils.Command{
+				"valid": {Description: "Valid command"},
+				"other": {Description: "Other command"},
+			},
+		},
+	}
+	commands := getAvailableCommands(mockCfg)
+	if len(commands) != 2 {
+		t.Errorf("expected 2 commands, got %d", len(commands))
+	}
+}
+
+// Test for commandNeedsIntent
+func TestCommandNeedsIntent(t *testing.T) {
+	mockCfg := &utils.Config{
+		Ai: utils.Ai{
+			Commands: map[string]utils.Command{
+				"ask":   {System_prompt: "Ask system prompt: ", Require_intent: true},
+				"other": {System_prompt: "Other system prompt: ", Require_intent: false},
+			},
+		},
+	}
+
+	tests := []struct {
+		command     string
+		shouldNeed  bool
+		expectError bool
+	}{
+		{"ask", true, false},
+		{"other", false, false},
+		{"nonexistent", false, true},
+	}
+
+	for _, tt := range tests {
+		needsIntent, err := commandNeedsIntent(tt.command, mockCfg)
+
+		// Check if error condition matches expectation
+		if (err != nil) != tt.expectError {
+			t.Errorf("expected error: %v, got: %v for command %s", tt.expectError, err != nil, tt.command)
+		}
+
+		// If not expecting an error, check the result
+		if !tt.expectError && needsIntent != tt.shouldNeed {
+			t.Errorf("expected %v for command %s, got %v", tt.shouldNeed, tt.command, needsIntent)
 		}
 	}
 }
