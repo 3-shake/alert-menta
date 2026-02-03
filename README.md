@@ -1,24 +1,43 @@
 # alert-menta
-An innovative tool 🚀 for real-time analysis and management of Issues' alerts. 🔍 It identifies alert causes, proposes actionable solutions, 💡and detailed reports. 📈
-Designed for developers 👨‍💻, managers 📋, and IT teams .💻 Alert-menta enhances productivity and software quality. 🌟
-## Overview of alert-menta
-### The purpose of alert-menta
-We reduce the burden of system failure response using LLM.
+
+LLM-powered incident response assistant for GitHub Issues. Reduce MTTR with AI-driven analysis, runbooks, and postmortems.
+
+## Features
+
+| Category | Feature | Description |
+|----------|---------|-------------|
+| **Commands** | `/describe` | Summarize the incident |
+| | `/analysis` | Root cause analysis (5 Whys) |
+| | `/suggest` | Propose improvement measures |
+| | `/ask` | Answer free-text questions |
+| | `/postmortem` | Generate postmortem document |
+| | `/runbook` | Generate response procedures |
+| | `/timeline` | Generate incident timeline |
+| | `/triage` | Structured JSON triage output |
+| **Providers** | OpenAI | GPT-4, GPT-4o-mini |
+| | Anthropic | Claude |
+| | VertexAI | Gemini |
+| **Integrations** | Slack | Notification on command response |
+| | MCP | Claude Code integration |
+| **Automation** | First Response | Auto-post incident guide |
+| | Fallback | Auto-switch providers on failure |
+| | Structured Output | JSON schema-compliant responses |
+
+## Overview
+
+### Purpose
+Reduce the burden of system failure response using LLM. Get AI-powered incident support directly within GitHub Issues.
+
 ### Main Features
-You can receive support for failure handling that is completed within GitHub.
-- Execute commands interactively in GitHub Issue comments:
-  - `describe` command to summarize the Issue
-  - `analysis` command for root cause analysis of failures using 5 Whys method
-  - `suggest` command for proposing improvement measures for failures
-  - `ask` command for asking additional questions
-  - `postmortem` command to generate postmortem documentation from incident timeline
-  - `runbook` command to generate step-by-step incident response procedures
-  - `timeline` command to generate chronological timeline of incident activities
-- Mechanism to improve response accuracy using [RAG](https://cloud.google.com/use-cases/retrieval-augmented-generation?hl=en) (in development)
-- Selectable LLM models (OpenAI, VertexAI)
-- Extensible prompt text
-  - Multilingual support
-- Allows dialogue that includes images.
+- **Slash Commands**: Execute AI commands in Issue comments (`/describe`, `/analysis`, etc.)
+- **Multi-Provider Support**: OpenAI, Anthropic (Claude), VertexAI (Gemini)
+- **Provider Fallback**: Automatic failover between providers
+- **Structured Output**: JSON responses for system integrations
+- **First Response Guide**: Auto-post incident guides for new issues
+- **Slack Notifications**: Get notified when AI responds
+- **MCP Server**: Claude Code integration for local development
+- **Image Support**: Analyze screenshots and diagrams in issues
+- **Customizable Prompts**: Define your own commands and prompts
 ## How to Use
 Alert-menta is intended to be run on GitHub Actions.
 ### 1. Prepare GitHub PAT
