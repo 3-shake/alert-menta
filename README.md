@@ -11,6 +11,7 @@ You can receive support for failure handling that is completed within GitHub.
   - `analysis` command for root cause analysis of failures using 5 Whys method
   - `suggest` command for proposing improvement measures for failures
   - `ask` command for asking additional questions
+  - `postmortem` command to generate postmortem documentation from incident timeline
 - Mechanism to improve response accuracy using [RAG](https://cloud.google.com/use-cases/retrieval-augmented-generation?hl=en) (in development)
 - Selectable LLM models (OpenAI, VertexAI)
 - Extensible prompt text
@@ -96,6 +97,24 @@ The built-in `analysis` command uses the 5 Whys method for root cause analysis. 
       - Root Cause
       - Contributing Factors
       - Recommended Actions
+    require_intent: false
+```
+
+The built-in `postmortem` command generates comprehensive postmortem documentation from the incident Issue and its comment timeline:
+```yaml
+- postmortem:
+    description: "Generate a postmortem document from the incident timeline."
+    system_prompt: |
+      You are an SRE expert. Generate a postmortem document based on the incident Issue.
+
+      Output format:
+      - Incident Summary (date, duration, severity, impact)
+      - Timeline (chronological events from comments)
+      - Root Cause (direct cause and contributing factors)
+      - Response & Resolution
+      - What Went Well / What Could Be Improved
+      - Action Items (prioritized with owners)
+      - Lessons Learned
     require_intent: false
 ```
 

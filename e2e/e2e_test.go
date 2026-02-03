@@ -116,3 +116,25 @@ func TestE2E_AnalysisCommand(t *testing.T) {
 		t.Errorf("Expected response output, got: %s", output)
 	}
 }
+
+func TestE2E_PostmortemCommand(t *testing.T) {
+	skipIfMissingEnv(t)
+
+	output, err := runCommand(t,
+		"go", "run", "./cmd/main.go",
+		"-repo", "alert-menta",
+		"-owner", "3-shake",
+		"-issue", "1",
+		"-github-token", os.Getenv("GITHUB_TOKEN"),
+		"-api-key", os.Getenv("OPENAI_API_KEY"),
+		"-command", "postmortem",
+		"-config", ".alert-menta.user.yaml",
+	)
+	if err != nil {
+		t.Fatalf("E2E postmortem command failed: %v\nOutput: %s", err, output)
+	}
+
+	if !strings.Contains(output, "Response:") {
+		t.Errorf("Expected response output, got: %s", output)
+	}
+}
