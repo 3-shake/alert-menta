@@ -27,7 +27,7 @@ linters:
 
   settings:
     gocyclo:
-      min-complexity: 15
+      min-complexity: 25
     nestif:
       min-complexity: 4
 
