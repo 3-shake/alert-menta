@@ -16,8 +16,22 @@ import (
 
 // Root structure of information read from config file
 type Config struct {
-	System System `yaml:"system"`
-	Ai     Ai     `yaml:"ai"`
+	System        System        `yaml:"system"`
+	Ai            Ai            `yaml:"ai"`
+	Notifications Notifications `yaml:"notifications"`
+}
+
+// Notifications holds notification configuration
+type Notifications struct {
+	Slack SlackConfig `yaml:"slack"`
+}
+
+// SlackConfig holds Slack notification settings
+type SlackConfig struct {
+	Enabled    bool     `yaml:"enabled"`
+	WebhookURL string   `yaml:"webhook_url" mapstructure:"webhook_url"`
+	Channel    string   `yaml:"channel"`
+	NotifyOn   []string `yaml:"notify_on" mapstructure:"notify_on"`
 }
 
 type System struct {

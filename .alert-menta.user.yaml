@@ -1,5 +1,5 @@
 system:
-  debug: 
+  debug:
     log_level: debug
 
 ai:
@@ -11,7 +11,7 @@ ai:
     project: "<YOUR_PROJECT_ID>"
     location: "us-central1"
     model: "gemini-2.0-flash-001"
-  
+
   commands:
     - describe:
         description: "Generate a detailed description of the Issue."
@@ -143,3 +143,13 @@ ai:
           ---
           The following is the GitHub Issue and comments representing the incident timeline:
         require_intent: false
+
+# Slack notification settings
+notifications:
+  slack:
+    enabled: false  # Set to true to enable Slack notifications
+    webhook_url: ""  # Your Slack Incoming Webhook URL (or use -slack-webhook-url flag)
+    channel: ""  # Optional: Override webhook default channel (e.g., "#incidents")
+    notify_on:
+      - command_response  # Notify when AI responds to a command
+      # - incident_created  # Notify when new incident is created (future feature)
