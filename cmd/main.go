@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"regexp"
 	"strings"
 
 	"github.com/3-shake/alert-menta/internal/ai"
@@ -156,6 +155,8 @@ func getAvailableCommands(cfg *utils.Config) map[string]string {
 
 // Construct user prompt from issue
 func constructUserPrompt(ghToken string, issue *github.GitHubIssue, cfg *utils.Config, logger *log.Logger) (string, []ai.Image, error) {
+	var images []ai.Image
+
 	title, err := issue.GetTitle()
 	if err != nil {
 		return "", nil, fmt.Errorf("Error getting Title: %w", err)
@@ -169,14 +170,19 @@ func constructUserPrompt(ghToken string, issue *github.GitHubIssue, cfg *utils.C
 	var userPrompt strings.Builder
 	userPrompt.WriteString("Title:" + *title + "\n")
 	userPrompt.WriteString("Body:" + *body + "\n")
+	urls := utils.ExtractImageURLs(*body)
+	for _, url := range urls {
+		imgData, ext, err := utils.DownloadImage(url, ghToken)
+		if err != nil {
+			return "", nil, fmt.Errorf("Error downloading image: %w", err)
+		}
+		images = append(images, ai.Image{Data: imgData, Extension: ext})
+	}
 
 	comments, err := issue.GetComments()
 	if err != nil {
 		return "", nil, fmt.Errorf("Error getting comments: %w", err)
 	}
-
-	var images []ai.Image
-	imageRegex := regexp.MustCompile(`!\[(.*?)\]\((.*?)\)`)
 
 	for _, v := range comments {
 		if *v.User.Login == "github-actions[bot]" {
@@ -187,14 +193,12 @@ func constructUserPrompt(ghToken string, issue *github.GitHubIssue, cfg *utils.C
 		}
 		userPrompt.WriteString(*v.User.Login + ":" + *v.Body + "\n")
 
-		matches := imageRegex.FindAllStringSubmatch(*v.Body, -1)
-		for _, match := range matches {
-			logger.Println("Image URL:", match[2]) // Log the URL of the image
-			imgData, ext, err := utils.DownloadImage(match[2], ghToken)
+		urls := utils.ExtractImageURLs(*body)
+		for _, url := range urls {
+			imgData, ext, err := utils.DownloadImage(url, ghToken)
 			if err != nil {
 				return "", nil, fmt.Errorf("Error downloading image: %w", err)
 			}
-
 			images = append(images, ai.Image{Data: imgData, Extension: ext})
 		}
 	}
