@@ -57,7 +57,7 @@ lint-fix:
 
 fmt:
 	go fmt ./...
-	gofumpt -l -w .
+	go tool gofumpt -l -w .
 
 vet:
 	go vet ./...
@@ -71,12 +71,10 @@ deps-update:
 	go get -u ./...
 	go mod tidy
 
-## Tools
+## Tools (Go 1.24+ uses tool directive in go.mod)
 tools:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
-	go install mvdan.cc/gofumpt@latest
-	go install github.com/securego/gosec/v2/cmd/gosec@latest
-	go install golang.org/x/vuln/cmd/govulncheck@latest
+	go install tool  # Install tools defined in go.mod
 
 ## Clean
 clean:
@@ -94,14 +92,14 @@ ci: lint test build
 release-dry-run:
 	goreleaser release --snapshot --clean
 
-## Security
+## Security (using Go 1.24 tool directive)
 security: vuln
 	@echo "Running security checks..."
-	gosec -quiet ./...
+	go tool gosec -quiet ./...
 
 vuln:
 	@echo "Checking for vulnerabilities..."
-	govulncheck ./...
+	go tool govulncheck ./...
 
 ## Docker
 docker: docker-build
