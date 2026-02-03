@@ -189,3 +189,24 @@ func TestE2E_RunbookCommand(t *testing.T) {
 		t.Errorf("Expected response output, got: %s", output)
 	}
 }
+
+func TestE2E_TimelineCommand(t *testing.T) {
+	skipIfMissingEnv(t)
+
+	output, err := runCommand(t,
+		"-repo", getTestRepo(),
+		"-owner", getTestOwner(),
+		"-issue", getTestIssue(),
+		"-github-token", os.Getenv("GITHUB_TOKEN"),
+		"-api-key", os.Getenv("OPENAI_API_KEY"),
+		"-command", "timeline",
+		"-config", getConfigPath(),
+	)
+	if err != nil {
+		t.Fatalf("E2E timeline command failed: %v\nOutput: %s", err, output)
+	}
+
+	if !strings.Contains(output, "Response:") {
+		t.Errorf("Expected response output, got: %s", output)
+	}
+}
