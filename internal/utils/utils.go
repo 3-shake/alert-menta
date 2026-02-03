@@ -36,8 +36,9 @@ type Ai struct {
 }
 
 type Command struct {
-	Description  string `yaml:"description"`
-	SystemPrompt string `yaml:"system_prompt" mapstructure:"system_prompt"`
+	Description   string `yaml:"description"`
+	SystemPrompt  string `yaml:"system_prompt" mapstructure:"system_prompt"`
+	RequireIntent bool   `yaml:"require_intent" mapstructure:"require_intent"`
 }
 
 type OpenAI struct {
@@ -137,4 +138,14 @@ func DownloadImage(url string, token string) ([]byte, string, error) {
 func ImageToBase64(data []byte, ext string) string {
 	base64img := base64.StdEncoding.EncodeToString(data)
 	return "data:image/" + ext + ";base64," + base64img
+}
+
+func ExtractImageURLs(body string) []string {
+	imageRegex := regexp.MustCompile(`!\[(.*?)\]\((.*?)\)`)
+	matches := imageRegex.FindAllStringSubmatch(body, -1)
+	var urls []string
+	for _, match := range matches {
+		urls = append(urls, match[2])
+	}
+	return urls
 }

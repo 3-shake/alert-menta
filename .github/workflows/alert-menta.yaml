@@ -7,14 +7,14 @@ on:
 
 jobs:
   Alert-Menta:
-    if: (startsWith(github.event.comment.body, '/describe') || startsWith(github.event.comment.body, '/suggest') || startsWith(github.event.comment.body, '/ask')) && (github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
+    if: startsWith(github.event.comment.body, '/') && (github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
     runs-on: ubuntu-24.04
     permissions:
       issues: write
       contents: read
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download and Install alert-menta
         run: |
@@ -24,21 +24,6 @@ jobs:
           | jq '.assets[] | select(.name | contains("Linux_x86")) | .id')"
           tar -zxvf alert-menta_Linux_x86_64.tar.gz
 
-      - name: Set Command
-        id: set_command
-        run: |
-          COMMENT_BODY="${{ github.event.comment.body }}"
-          if [[ "$COMMENT_BODY" == /ask* ]]; then
-            COMMAND=ask
-            INTENT=${COMMENT_BODY:5}
-            echo "INTENT=$INTENT" >> $GITHUB_ENV
-          elif [[ "$COMMENT_BODY" == /describe* ]]; then
-            COMMAND=describe
-          elif [[ "$COMMENT_BODY" == /suggest* ]]; then
-            COMMAND=suggest
-          fi
-          echo "COMMAND=$COMMAND" >> $GITHUB_ENV
-
       - run: echo "REPOSITORY_NAME=${GITHUB_REPOSITORY#${GITHUB_REPOSITORY_OWNER}/}" >> $GITHUB_ENV
 
       - name: Get user defined config file
@@ -47,9 +32,27 @@ jobs:
         run: |
           curl -H "Authorization: token ${{ secrets.GH_TOKEN }}" -L -o .alert-menta.user.yaml "https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ env.REPOSITORY_NAME }}/main/.alert-menta.user.yaml" && echo "CONFIG_FILE=./.alert-menta.user.yaml" >> $GITHUB_ENV
 
+      - name: Extract command and intent
+        id: extract_command
+        run: |
+          COMMENT_BODY="${{ github.event.comment.body }}"
+          COMMAND=$(echo "$COMMENT_BODY" | sed -E 's|^/([^ ]*).*|\1|')
+          echo "COMMAND=$COMMAND" >> $GITHUB_ENV
+          
+          if [[ "$COMMENT_BODY" == "/$COMMAND "* ]]; then
+            INTENT=$(echo "$COMMENT_BODY" | sed -E "s|^/$COMMAND ||")
+            echo "INTENT=$INTENT" >> $GITHUB_ENV
+          fi
+          
+          COMMANDS_CHECK=$(yq e '.ai.commands[] | keys' .alert-menta.user.yaml | grep -c "$COMMAND" || echo "0")
+          if [ "$COMMANDS_CHECK" -eq "0" ]; then
+            echo "Invalid command: $COMMAND. Command not found in configuration."
+            exit 1
+          fi
+
       - name: Add Comment
         run: |
-          if [[ "$COMMAND" == "ask" ]]; then
+          if [ -n "$INTENT" ]; then
             ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -github-token ${{ secrets.GH_TOKEN }} -api-key ${{ secrets.OPENAI_API_KEY }} -command $COMMAND -config $CONFIG_FILE -intent "$INTENT"
           else
             ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -github-token ${{ secrets.GH_TOKEN }} -api-key ${{ secrets.OPENAI_API_KEY }} -command $COMMAND -config $CONFIG_FILE

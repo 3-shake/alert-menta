@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"regexp"
 	"strings"
 
 	"github.com/3-shake/alert-menta/internal/ai"
@@ -52,12 +51,48 @@ func main() {
 		logger.Fatalf("Error loading config: %v", err)
 	}
 
+	issue := github.NewIssue(cfg.owner, cfg.repo, cfg.issueNumber, cfg.ghToken)
+
+	// Validate command
 	err = validateCommand(cfg.command, loadedcfg)
 	if err != nil {
-		logger.Fatalf("Error validating command: %v", err)
+		// Get available commands for the error message
+		availableCommands := getAvailableCommands(loadedcfg)
+		usageMessage := fmt.Sprintf("**Error**: %v\n\n**Available commands:**\n", err)
+
+		// Add each command with its description to the usage message
+		for cmd, description := range availableCommands {
+			usageMessage += fmt.Sprintf("- `/%s`: %s\n", cmd, description)
+		}
+
+		// Post the usage message as a comment
+		if postErr := issue.PostComment(usageMessage); postErr != nil {
+			logger.Fatalf("Error posting error comment: %v", postErr)
+		}
+
+		// Exit with error code
+		logger.Printf("Error validating command: %v", err)
+		os.Exit(1)
 	}
 
-	issue := github.NewIssue(cfg.owner, cfg.repo, cfg.issueNumber, cfg.ghToken)
+	// Check if intent is required for this command and missing
+	needsIntent, err := commandNeedsIntent(cfg.command, loadedcfg)
+	if err != nil {
+		logger.Fatalf("Error checking if intent is required: %v", err)
+	}
+	if needsIntent && cfg.intent == "" {
+		usageMessage := fmt.Sprintf("**Error**: The `/%s` command requires additional text after the command.\n\n**Usage**: `/%s [your text here]`",
+			cfg.command, cfg.command)
+
+		// Post the usage message as a comment
+		if postErr := issue.PostComment(usageMessage); postErr != nil {
+			logger.Fatalf("Error posting error comment: %v", postErr)
+		}
+
+		// Exit with error code
+		logger.Printf("Error: intent required for command %s", cfg.command)
+		os.Exit(1)
+	}
 
 	userPrompt, imgs, err := constructUserPrompt(cfg.ghToken, issue, loadedcfg, logger)
 	if err != nil {
@@ -97,8 +132,31 @@ func validateCommand(command string, cfg *utils.Config) error {
 	return nil
 }
 
+// Check if a command requires an intent
+func commandNeedsIntent(command string, cfg *utils.Config) (bool, error) {
+	// Get the command configuration
+	cmd, ok := cfg.Ai.Commands[command]
+	if !ok {
+		return false, fmt.Errorf("command not found: %s", command)
+	}
+
+	// Check if this command requires intent
+	return cmd.RequireIntent, nil
+}
+
+// Get available commands with descriptions for usage message
+func getAvailableCommands(cfg *utils.Config) map[string]string {
+	commands := make(map[string]string)
+	for cmd, cmdConfig := range cfg.Ai.Commands {
+		commands[cmd] = cmdConfig.Description
+	}
+	return commands
+}
+
 // Construct user prompt from issue
 func constructUserPrompt(ghToken string, issue *github.GitHubIssue, cfg *utils.Config, logger *log.Logger) (string, []ai.Image, error) {
+	var images []ai.Image
+
 	title, err := issue.GetTitle()
 	if err != nil {
 		return "", nil, fmt.Errorf("getting title: %w", err)
@@ -112,14 +170,19 @@ func constructUserPrompt(ghToken string, issue *github.GitHubIssue, cfg *utils.C
 	var userPrompt strings.Builder
 	userPrompt.WriteString("Title:" + *title + "\n")
 	userPrompt.WriteString("Body:" + *body + "\n")
+	urls := utils.ExtractImageURLs(*body)
+	for _, url := range urls {
+		imgData, ext, err := utils.DownloadImage(url, ghToken)
+		if err != nil {
+			return "", nil, fmt.Errorf("Error downloading image: %w", err)
+		}
+		images = append(images, ai.Image{Data: imgData, Extension: ext})
+	}
 
 	comments, err := issue.GetComments()
 	if err != nil {
 		return "", nil, fmt.Errorf("getting comments: %w", err)
 	}
-
-	var images []ai.Image
-	imageRegex := regexp.MustCompile(`!\[(.*?)\]\((.*?)\)`)
 
 	for _, v := range comments {
 		if *v.User.Login == "github-actions[bot]" {
@@ -130,14 +193,12 @@ func constructUserPrompt(ghToken string, issue *github.GitHubIssue, cfg *utils.C
 		}
 		userPrompt.WriteString(*v.User.Login + ":" + *v.Body + "\n")
 
-		matches := imageRegex.FindAllStringSubmatch(*v.Body, -1)
-		for _, match := range matches {
-			logger.Println("Image URL:", match[2]) // Log the URL of the image
-			imgData, ext, err := utils.DownloadImage(match[2], ghToken)
+		urls := utils.ExtractImageURLs(*body)
+		for _, url := range urls {
+			imgData, ext, err := utils.DownloadImage(url, ghToken)
 			if err != nil {
 				return "", nil, fmt.Errorf("downloading image: %w", err)
 			}
-
 			images = append(images, ai.Image{Data: imgData, Extension: ext})
 		}
 	}
@@ -147,9 +208,9 @@ func constructUserPrompt(ghToken string, issue *github.GitHubIssue, cfg *utils.C
 // Construct AI prompt
 func constructPrompt(command, intent, userPrompt string, imgs []ai.Image, cfg *utils.Config, logger *log.Logger) (*ai.Prompt, error) {
 	var systemPrompt string
-	if command == "ask" {
+	if cfg.Ai.Commands[command].RequireIntent {
 		if intent == "" {
-			return nil, fmt.Errorf("intent is required for 'ask' command")
+			return nil, fmt.Errorf("intent is required for '%s' command", command)
 		}
 		systemPrompt = cfg.Ai.Commands[command].SystemPrompt + intent + "\n"
 	} else {
