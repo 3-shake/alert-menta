@@ -8,7 +8,7 @@ We reduce the burden of system failure response using LLM.
 You can receive support for failure handling that is completed within GitHub.
 - Execute commands interactively in GitHub Issue comments:
   - `describe` command to summarize the Issue
-  - `analysis` command for root cause analysis of failures (in development)
+  - `analysis` command for root cause analysis of failures using 5 Whys method
   - `suggest` command for proposing improvement measures for failures
   - `ask` command for asking additional questions
 - Mechanism to improve response accuracy using [RAG](https://cloud.google.com/use-cases/retrieval-augmented-generation?hl=en) (in development)
@@ -76,11 +76,26 @@ Set the following in `command.{command}`.
 - `system_prompt`: describe the primary instructions for this command.
 - `require_intent`: allows the command to specify arguments. (e.g. if `require_intent` is true, we execute command that `/{command} “some instruction”`)
 
-As an example, to configure the ANALYSIS command, write:
+The built-in `analysis` command uses the 5 Whys method for root cause analysis. You can customize it or create your own RCA command:
 ```yaml
 - analysis:
-    description: "This command performs a root cause analysis of an Issue."
-    system_prompt: "Please determine the root cause of the issue and resolve it based on the content of the issue."
+    description: "Perform root cause analysis using 5 Whys method."
+    system_prompt: |
+      You are an SRE expert. Perform a root cause analysis on the following incident.
+
+      Analysis Framework:
+      1. Identify the direct cause
+      2. Apply 5 Whys analysis
+      3. Identify the root cause
+      4. List contributing factors
+      5. Propose recommended actions
+
+      Output in structured Markdown format with sections:
+      - Direct Cause
+      - 5 Whys Analysis
+      - Root Cause
+      - Contributing Factors
+      - Recommended Actions
     require_intent: false
 ```
 

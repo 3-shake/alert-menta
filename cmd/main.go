@@ -174,7 +174,7 @@ func constructUserPrompt(ghToken string, issue *github.GitHubIssue, cfg *utils.C
 	for _, url := range urls {
 		imgData, ext, err := utils.DownloadImage(url, ghToken)
 		if err != nil {
-			return "", nil, fmt.Errorf("Error downloading image: %w", err)
+			return "", nil, fmt.Errorf("downloading image: %w", err)
 		}
 		images = append(images, ai.Image{Data: imgData, Extension: ext})
 	}
