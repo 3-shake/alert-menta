@@ -4,7 +4,7 @@
 
 # Versions
 GO_VERSION := 1.23
-GOLANGCI_LINT_VERSION := v2.1.6
+GOLANGCI_LINT_VERSION := v2.8.0
 
 # Build
 BINARY_NAME := alert-menta

@@ -65,7 +65,7 @@ PRs should target the `develop` branch, not `main`. See wiki for details.
 ### Go Version
 - Project uses Go 1.23 (specified in `go.mod`)
 - CI/CD workflows use Go 1.23
-- golangci-lint v2.1.6 is used for linting
+- golangci-lint v2.8.0 is used for linting (golangci-lint-action v7)
 
 ### Code Quality
 - Run `make ci` before committing
@@ -115,14 +115,14 @@ export PATH=$GOROOT/bin:$PATH
 **診断コマンド**:
 ```bash
 golangci-lint --version
-# 期待値: v2.1.6
+# 期待値: v2.8.0
 ```
 
 **解決方法**:
 ```bash
 make tools
 # または
-go install github.com/golangci/golangci-lint/cmd/golangci-lint@v2.1.6
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@v2.8.0
 ```
 
 ### E2E test failures
