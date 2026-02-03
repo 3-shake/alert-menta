@@ -21,3 +21,18 @@
 go.work
 .env
 dist/
+
+# Build
+/bin/
+
+# Coverage
+coverage.out
+coverage.html
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store

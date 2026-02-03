@@ -25,7 +25,7 @@ type System struct {
 }
 
 type SystemDebug struct {
-	Log_level string `yaml:"log_level"`
+	LogLevel string `yaml:"log_level" mapstructure:"log_level"`
 }
 
 type Ai struct {
@@ -36,8 +36,8 @@ type Ai struct {
 }
 
 type Command struct {
-	Description   string `yaml:"description"`
-	System_prompt string `yaml:"system_prompt"`
+	Description  string `yaml:"description"`
+	SystemPrompt string `yaml:"system_prompt" mapstructure:"system_prompt"`
 }
 
 type OpenAI struct {
@@ -68,15 +68,14 @@ func NewConfig(filename string) (*Config, error) {
 	viper.AddConfigPath(dir)
 	err := viper.ReadInConfig()
 	if err != nil {
-		logger.Fatalf("Error reading config file, %v", err)
+		return nil, fmt.Errorf("error reading config file: %w", err)
 	}
 
 	// Unmarshal the config file
 	cfg := new(Config)
 	err = viper.Unmarshal(cfg)
 	if err != nil {
-		logger.Fatalf("Error unmarshal read config, %v", err)
-		return nil, err
+		return nil, fmt.Errorf("error unmarshaling config: %w", err)
 	}
 
 	// Print the config
@@ -100,7 +99,7 @@ func DownloadImage(url string, token string) ([]byte, string, error) {
 	if err != nil {
 		return []byte{}, "", fmt.Errorf("failed to get a response: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Write the response body to the temporary file
 	file, err := os.CreateTemp("", "downloaded-image-*")
@@ -109,8 +108,8 @@ func DownloadImage(url string, token string) ([]byte, string, error) {
 	}
 	defer func() {
 		log.Println("remove", file.Name(), "Content-Type:", resp.Header.Get("Content-Type"))
-		file.Close()
-		os.Remove(file.Name())
+		_ = file.Close()
+		_ = os.Remove(file.Name())
 	}()
 	_, err = io.Copy(file, resp.Body)
 	if err != nil {

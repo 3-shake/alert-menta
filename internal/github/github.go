@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 
@@ -62,10 +63,10 @@ func (gh *GitHubIssue) PostComment(commentBody string) error {
 	comment := &github.IssueComment{Body: github.String(commentBody)}
 	_, _, err := gh.client.Issues.CreateComment(gh.ctx, gh.owner, gh.repo, gh.issueNumber, comment)
 	if err != nil {
-		gh.logger.Fatalf("Error creating comment: %v", err)
+		return fmt.Errorf("error creating comment: %w", err)
 	}
 	gh.logger.Printf("Comment created successfully on Issue %d", gh.issueNumber)
-	return err
+	return nil
 }
 
 func NewIssue(owner string, repo string, issueNumber int, token string) *GitHubIssue {

@@ -15,7 +15,7 @@ func TestValidateCommand(t *testing.T) {
 	mockCfg := &utils.Config{
 		Ai: utils.Ai{
 			Commands: map[string]utils.Command{
-				"valid": {System_prompt: "hoge"},
+				"valid": {SystemPrompt: "hoge"},
 			},
 		},
 	}
@@ -25,7 +25,7 @@ func TestValidateCommand(t *testing.T) {
 		expected error
 	}{
 		{"valid", nil},
-		{"invalid", errors.New("Invalid command: invalid. Allowed commands are valid")},
+		{"invalid", errors.New("invalid command: invalid, allowed commands are valid")},
 	}
 
 	for _, tt := range tests {
@@ -41,8 +41,8 @@ func TestConstructPrompt(t *testing.T) {
 	mockCfg := &utils.Config{
 		Ai: utils.Ai{
 			Commands: map[string]utils.Command{
-				"ask":   {System_prompt: "Ask system prompt: "},
-				"other": {System_prompt: "Other system prompt: "},
+				"ask":   {SystemPrompt: "Ask system prompt: "},
+				"other": {SystemPrompt: "Other system prompt: "},
 			},
 		},
 	}
