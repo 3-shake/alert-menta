@@ -16,9 +16,33 @@ import (
 
 // Root structure of information read from config file
 type Config struct {
-	System        System        `yaml:"system"`
-	Ai            Ai            `yaml:"ai"`
-	Notifications Notifications `yaml:"notifications"`
+	System        System              `yaml:"system"`
+	Ai            Ai                  `yaml:"ai"`
+	Notifications Notifications       `yaml:"notifications"`
+	FirstResponse FirstResponseConfig `yaml:"first_response" mapstructure:"first_response"`
+}
+
+// FirstResponseConfig holds first response guide configuration
+type FirstResponseConfig struct {
+	Enabled       bool                      `yaml:"enabled" mapstructure:"enabled"`
+	TriggerLabels []string                  `yaml:"trigger_labels" mapstructure:"trigger_labels"`
+	Guides        []FirstResponseGuide      `yaml:"guides" mapstructure:"guides"`
+	DefaultGuide  string                    `yaml:"default_guide" mapstructure:"default_guide"`
+	SlackChannel  string                    `yaml:"slack_channel" mapstructure:"slack_channel"`
+	Escalation    FirstResponseEscalation   `yaml:"escalation" mapstructure:"escalation"`
+}
+
+// FirstResponseGuide holds configuration for severity-specific guides
+type FirstResponseGuide struct {
+	Severity   string   `yaml:"severity" mapstructure:"severity"`
+	Template   string   `yaml:"template" mapstructure:"template"`
+	AutoNotify []string `yaml:"auto_notify" mapstructure:"auto_notify"`
+}
+
+// FirstResponseEscalation holds escalation settings
+type FirstResponseEscalation struct {
+	TimeoutMinutes int    `yaml:"timeout_minutes" mapstructure:"timeout_minutes"`
+	NotifyTarget   string `yaml:"notify_target" mapstructure:"notify_target"`
 }
 
 // Notifications holds notification configuration
