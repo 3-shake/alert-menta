@@ -5,6 +5,8 @@ package e2e
 import (
 	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -41,13 +43,24 @@ func skipIfMissingEnv(t *testing.T) {
 	}
 }
 
+func getProjectRoot() string {
+	// Get the directory of the test file, then go up one level
+	_, filename, _, _ := runtime.Caller(0)
+	return filepath.Dir(filepath.Dir(filename))
+}
+
 func runCommand(t *testing.T, args ...string) (string, error) {
 	t.Helper()
+	projectRoot := getProjectRoot()
 	cmd := exec.Command("go", append([]string{"run", "./cmd/main.go"}, args...)...)
-	cmd.Dir = ".."
+	cmd.Dir = projectRoot
 	cmd.Env = os.Environ()
 	output, err := cmd.CombinedOutput()
 	return string(output), err
+}
+
+func getConfigPath() string {
+	return filepath.Join(getProjectRoot(), ".alert-menta.user.yaml")
 }
 
 func TestE2E_DescribeCommand(t *testing.T) {
@@ -60,7 +73,7 @@ func TestE2E_DescribeCommand(t *testing.T) {
 		"-github-token", os.Getenv("GITHUB_TOKEN"),
 		"-api-key", os.Getenv("OPENAI_API_KEY"),
 		"-command", "describe",
-		"-config", ".alert-menta.user.yaml",
+		"-config", getConfigPath(),
 	)
 	if err != nil {
 		t.Fatalf("E2E describe command failed: %v\nOutput: %s", err, output)
@@ -81,7 +94,7 @@ func TestE2E_SuggestCommand(t *testing.T) {
 		"-github-token", os.Getenv("GITHUB_TOKEN"),
 		"-api-key", os.Getenv("OPENAI_API_KEY"),
 		"-command", "suggest",
-		"-config", ".alert-menta.user.yaml",
+		"-config", getConfigPath(),
 	)
 	if err != nil {
 		t.Fatalf("E2E suggest command failed: %v\nOutput: %s", err, output)
@@ -103,7 +116,7 @@ func TestE2E_AskCommand(t *testing.T) {
 		"-api-key", os.Getenv("OPENAI_API_KEY"),
 		"-command", "ask",
 		"-intent", "What is the summary of this issue?",
-		"-config", ".alert-menta.user.yaml",
+		"-config", getConfigPath(),
 	)
 	if err != nil {
 		t.Fatalf("E2E ask command failed: %v\nOutput: %s", err, output)
@@ -124,7 +137,7 @@ func TestE2E_AnalysisCommand(t *testing.T) {
 		"-github-token", os.Getenv("GITHUB_TOKEN"),
 		"-api-key", os.Getenv("OPENAI_API_KEY"),
 		"-command", "analysis",
-		"-config", ".alert-menta.user.yaml",
+		"-config", getConfigPath(),
 	)
 	if err != nil {
 		t.Fatalf("E2E analysis command failed: %v\nOutput: %s", err, output)
@@ -145,7 +158,7 @@ func TestE2E_PostmortemCommand(t *testing.T) {
 		"-github-token", os.Getenv("GITHUB_TOKEN"),
 		"-api-key", os.Getenv("OPENAI_API_KEY"),
 		"-command", "postmortem",
-		"-config", ".alert-menta.user.yaml",
+		"-config", getConfigPath(),
 	)
 	if err != nil {
 		t.Fatalf("E2E postmortem command failed: %v\nOutput: %s", err, output)
