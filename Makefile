@@ -1,6 +1,6 @@
 # alert-menta Makefile
 
-.PHONY: all build test test-verbose test-e2e lint lint-fix fmt vet clean help deps deps-update tools dev-setup ci coverage release-dry-run
+.PHONY: all build test test-verbose test-e2e lint lint-fix fmt vet clean help deps deps-update tools dev-setup ci coverage release-dry-run security vuln
 
 # Versions
 GO_VERSION := 1.23
@@ -8,7 +8,10 @@ GOLANGCI_LINT_VERSION := v2.8.0
 
 # Build
 BUILD_DIR := bin
-LDFLAGS := -s -w
+VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "none")
+DATE := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+LDFLAGS := -s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)
 
 all: lint test build
 
@@ -67,6 +70,8 @@ deps-update:
 tools:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 	go install mvdan.cc/gofumpt@latest
+	go install github.com/securego/gosec/v2/cmd/gosec@latest
+	go install golang.org/x/vuln/cmd/govulncheck@latest
 
 ## Clean
 clean:
@@ -84,25 +89,38 @@ ci: lint test build
 release-dry-run:
 	goreleaser release --snapshot --clean
 
+## Security
+security: vuln
+	@echo "Running security checks..."
+	gosec -quiet ./...
+
+vuln:
+	@echo "Checking for vulnerabilities..."
+	govulncheck ./...
+
 ## Help
 help:
 	@echo "Usage: make [target]"
 	@echo ""
 	@echo "Targets:"
-	@echo "  all          Run lint, test, and build"
-	@echo "  build        Build the binary"
-	@echo "  test         Run tests with race detection and coverage"
-	@echo "  test-verbose Run tests with verbose output"
-	@echo "  test-e2e     Run E2E tests (requires GITHUB_TOKEN and OPENAI_API_KEY)"
-	@echo "  coverage     Generate HTML coverage report"
-	@echo "  lint         Run golangci-lint"
-	@echo "  lint-fix     Run golangci-lint with auto-fix"
-	@echo "  fmt          Format code with gofmt and gofumpt"
-	@echo "  vet          Run go vet"
-	@echo "  deps         Tidy and verify dependencies"
-	@echo "  deps-update  Update dependencies"
-	@echo "  tools        Install development tools"
-	@echo "  clean        Remove build artifacts"
-	@echo "  dev-setup    Set up development environment"
-	@echo "  ci           Run CI checks (lint, test, build)"
-	@echo "  help         Show this help"
+	@echo "  all             Run lint, test, and build"
+	@echo "  build           Build all binaries with version info"
+	@echo "  build-main      Build only the main CLI binary"
+	@echo "  test            Run tests with race detection and coverage"
+	@echo "  test-verbose    Run tests with verbose output"
+	@echo "  test-e2e        Run E2E tests (requires GITHUB_TOKEN and OPENAI_API_KEY)"
+	@echo "  coverage        Generate HTML coverage report"
+	@echo "  lint            Run golangci-lint"
+	@echo "  lint-fix        Run golangci-lint with auto-fix"
+	@echo "  fmt             Format code with gofmt and gofumpt"
+	@echo "  vet             Run go vet"
+	@echo "  deps            Tidy and verify dependencies"
+	@echo "  deps-update     Update dependencies"
+	@echo "  tools           Install development tools"
+	@echo "  security        Run security checks (gosec)"
+	@echo "  vuln            Check for known vulnerabilities (govulncheck)"
+	@echo "  clean           Remove build artifacts"
+	@echo "  dev-setup       Set up development environment"
+	@echo "  ci              Run CI checks (lint, test, build)"
+	@echo "  release-dry-run Test release with goreleaser"
+	@echo "  help            Show this help"

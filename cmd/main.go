@@ -13,6 +13,13 @@ import (
 	"github.com/3-shake/alert-menta/internal/utils"
 )
 
+// Version information (set via ldflags)
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 // Config holds command-line arguments
 type Config struct {
 	repo            string
@@ -28,6 +35,7 @@ type Config struct {
 
 func main() {
 	cfg := &Config{}
+	showVersion := flag.Bool("version", false, "Show version information")
 	flag.StringVar(&cfg.repo, "repo", "", "Repository name")
 	flag.StringVar(&cfg.owner, "owner", "", "Repository owner")
 	flag.IntVar(&cfg.issueNumber, "issue", 0, "Issue number")
@@ -38,6 +46,13 @@ func main() {
 	flag.StringVar(&cfg.oaiKey, "api-key", "", "OpenAI api key")
 	flag.StringVar(&cfg.slackWebhookURL, "slack-webhook-url", "", "Slack webhook URL for notifications (optional)")
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("alert-menta %s\n", version)
+		fmt.Printf("  commit: %s\n", commit)
+		fmt.Printf("  built:  %s\n", date)
+		os.Exit(0)
+	}
 
 	if cfg.repo == "" || cfg.owner == "" || cfg.issueNumber == 0 || cfg.ghToken == "" || cfg.command == "" || cfg.configFile == "" {
 		flag.PrintDefaults()
@@ -272,7 +287,7 @@ func getSingleAIClient(provider, oaiKey string, cfg *utils.Config, logger *log.L
 		return aic, nil
 	case "anthropic":
 		if oaiKey == "" {
-			return nil, fmt.Errorf("Anthropic API key is required")
+			return nil, fmt.Errorf("anthropic API key is required")
 		}
 		logger.Println("Using Anthropic API")
 		logger.Println("Anthropic model:", cfg.Ai.Anthropic.Model)
