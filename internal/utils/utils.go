@@ -43,10 +43,11 @@ type SystemDebug struct {
 }
 
 type Ai struct {
-	Commands map[string]Command `yaml:"commands"`
-	Provider string             `yaml:"provider"`
-	OpenAI   OpenAI             `yaml:"openai"`
-	VertexAI VertexAI           `yaml:"vertexai"`
+	Commands  map[string]Command `yaml:"commands"`
+	Provider  string             `yaml:"provider"`
+	OpenAI    OpenAI             `yaml:"openai"`
+	VertexAI  VertexAI           `yaml:"vertexai"`
+	Anthropic AnthropicConfig    `yaml:"anthropic"`
 }
 
 type Command struct {
@@ -63,6 +64,10 @@ type VertexAI struct {
 	Model   string `yaml:"model"`
 	Project string `yaml:"project"`
 	Region  string `yaml:"region"`
+}
+
+type AnthropicConfig struct {
+	Model string `yaml:"model"`
 }
 
 func NewConfig(filename string) (*Config, error) {

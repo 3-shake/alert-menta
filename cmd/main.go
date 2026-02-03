@@ -246,6 +246,13 @@ func getAIClient(oaiKey string, cfg *utils.Config, logger *log.Logger) (ai.Ai, e
 			return nil, fmt.Errorf("new Vertex AI client: %w", err)
 		}
 		return aic, nil
+	case "anthropic":
+		if oaiKey == "" {
+			return nil, fmt.Errorf("Anthropic API key is required")
+		}
+		logger.Println("Using Anthropic API")
+		logger.Println("Anthropic model:", cfg.Ai.Anthropic.Model)
+		return ai.NewAnthropicClient(oaiKey, cfg.Ai.Anthropic.Model), nil
 	default:
 		return nil, fmt.Errorf("invalid provider: %s", cfg.Ai.Provider)
 	}

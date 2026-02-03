@@ -9,6 +9,28 @@ import (
 	"testing"
 )
 
+// Test configuration - can be overridden via environment variables
+func getTestRepo() string {
+	if repo := os.Getenv("E2E_TEST_REPO"); repo != "" {
+		return repo
+	}
+	return "alert-menta-test" // default test repo
+}
+
+func getTestOwner() string {
+	if owner := os.Getenv("E2E_TEST_OWNER"); owner != "" {
+		return owner
+	}
+	return "nwiizo" // default test owner
+}
+
+func getTestIssue() string {
+	if issue := os.Getenv("E2E_TEST_ISSUE"); issue != "" {
+		return issue
+	}
+	return "1" // default test issue
+}
+
 func skipIfMissingEnv(t *testing.T) {
 	t.Helper()
 	if os.Getenv("GITHUB_TOKEN") == "" {
@@ -19,7 +41,7 @@ func skipIfMissingEnv(t *testing.T) {
 	}
 }
 
-func runCommand(t *testing.T, command string, args ...string) (string, error) {
+func runCommand(t *testing.T, args ...string) (string, error) {
 	t.Helper()
 	cmd := exec.Command("go", append([]string{"run", "./cmd/main.go"}, args...)...)
 	cmd.Dir = ".."
@@ -32,10 +54,9 @@ func TestE2E_DescribeCommand(t *testing.T) {
 	skipIfMissingEnv(t)
 
 	output, err := runCommand(t,
-		"go", "run", "./cmd/main.go",
-		"-repo", "alert-menta",
-		"-owner", "3-shake",
-		"-issue", "1",
+		"-repo", getTestRepo(),
+		"-owner", getTestOwner(),
+		"-issue", getTestIssue(),
 		"-github-token", os.Getenv("GITHUB_TOKEN"),
 		"-api-key", os.Getenv("OPENAI_API_KEY"),
 		"-command", "describe",
@@ -54,10 +75,9 @@ func TestE2E_SuggestCommand(t *testing.T) {
 	skipIfMissingEnv(t)
 
 	output, err := runCommand(t,
-		"go", "run", "./cmd/main.go",
-		"-repo", "alert-menta",
-		"-owner", "3-shake",
-		"-issue", "1",
+		"-repo", getTestRepo(),
+		"-owner", getTestOwner(),
+		"-issue", getTestIssue(),
 		"-github-token", os.Getenv("GITHUB_TOKEN"),
 		"-api-key", os.Getenv("OPENAI_API_KEY"),
 		"-command", "suggest",
@@ -76,10 +96,9 @@ func TestE2E_AskCommand(t *testing.T) {
 	skipIfMissingEnv(t)
 
 	output, err := runCommand(t,
-		"go", "run", "./cmd/main.go",
-		"-repo", "alert-menta",
-		"-owner", "3-shake",
-		"-issue", "1",
+		"-repo", getTestRepo(),
+		"-owner", getTestOwner(),
+		"-issue", getTestIssue(),
 		"-github-token", os.Getenv("GITHUB_TOKEN"),
 		"-api-key", os.Getenv("OPENAI_API_KEY"),
 		"-command", "ask",
@@ -99,10 +118,9 @@ func TestE2E_AnalysisCommand(t *testing.T) {
 	skipIfMissingEnv(t)
 
 	output, err := runCommand(t,
-		"go", "run", "./cmd/main.go",
-		"-repo", "alert-menta",
-		"-owner", "3-shake",
-		"-issue", "1",
+		"-repo", getTestRepo(),
+		"-owner", getTestOwner(),
+		"-issue", getTestIssue(),
 		"-github-token", os.Getenv("GITHUB_TOKEN"),
 		"-api-key", os.Getenv("OPENAI_API_KEY"),
 		"-command", "analysis",
@@ -121,10 +139,9 @@ func TestE2E_PostmortemCommand(t *testing.T) {
 	skipIfMissingEnv(t)
 
 	output, err := runCommand(t,
-		"go", "run", "./cmd/main.go",
-		"-repo", "alert-menta",
-		"-owner", "3-shake",
-		"-issue", "1",
+		"-repo", getTestRepo(),
+		"-owner", getTestOwner(),
+		"-issue", getTestIssue(),
 		"-github-token", os.Getenv("GITHUB_TOKEN"),
 		"-api-key", os.Getenv("OPENAI_API_KEY"),
 		"-command", "postmortem",
