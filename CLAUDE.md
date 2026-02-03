@@ -110,14 +110,64 @@ Add to `~/.claude/settings.json`:
 
 ### Code Quality
 - Run `make ci` before committing
+- Run `make security` for security scans (gosec + govulncheck)
 - Avoid `log.Fatal`/`log.Fatalf` in library code - return errors instead
 - Check all errors from function calls (errcheck linter)
 - Use `fmt.Errorf("context: %w", err)` for error wrapping
+- Error strings should not be capitalized (staticcheck ST1005)
+
+### Version Information
+CLI binaries support `-version` flag to display version info:
+```bash
+./bin/alert-menta -version
+# alert-menta v0.2.0
+#   commit: abc1234
+#   built:  2024-01-01T00:00:00Z
+```
+Version info is embedded via ldflags during build (see Makefile).
+
+### Security Scanning
+```bash
+make security  # Run gosec
+make vuln      # Run govulncheck
+```
+GitHub Actions workflow (`.github/workflows/security.yaml`) runs:
+- govulncheck for known vulnerabilities
+- gosec for security issues (results uploaded to GitHub Security tab)
+
+### Dependency Management
+- Dependabot is configured (`.github/dependabot.yml`)
+- Weekly updates for Go modules and GitHub Actions
+- Dependencies are grouped by source (golang.org/*, google.golang.org/*)
+- Update manually: `make deps-update`
 
 ### E2E Testing
 - E2E tests are located in `e2e/` directory
 - Tests require `GITHUB_TOKEN` and `OPENAI_API_KEY` environment variables
 - Run with `make test-e2e` or `go test -tags=e2e -v ./e2e/...`
+
+### Releasing with GoReleaser
+Multiple binaries are built:
+- `alert-menta`: Main CLI
+- `alert-menta-mcp`: MCP server for Claude Code
+- `alert-menta-firstresponse`: First response guide generator
+- `alert-menta-triage`: Auto-triage for issues
+
+```bash
+# Test release locally (no publish)
+make release-dry-run
+
+# Actual release (triggered by tag push)
+git tag v0.2.0
+git push origin v0.2.0
+```
+GoReleaser config: `.goreleaser.yaml`
+Release workflow: `.github/workflows/release.yaml`
+
+Supported platforms:
+- linux/amd64, linux/arm64
+- darwin/amd64, darwin/arm64
+- windows/amd64, windows/arm64
 
 ## Troubleshooting (for Claude Code)
 
@@ -302,3 +352,47 @@ func skipIfMissingEnv(t *testing.T) {
 1. マージ後のCIログを確認
 2. テストが"SKIP"ではなく"PASS"であることを確認
 3. スキップされている場合はSecrets設定を確認
+
+### gocyclo / nestif 複雑度エラー
+
+**症状**: `cyclomatic complexity X of func main is high` または `has complex nested blocks`
+
+**解決パターン**:
+1. `main()` を小さな関数に分割
+2. 設定解析を `parseFlags()` に抽出
+3. メイン処理を `run()` に抽出（テスト可能になる）
+4. ネストした条件分岐を早期リターンに変換
+
+```go
+// Before (高複雑度)
+func main() {
+    // 長い処理...
+}
+
+// After (リファクタリング済み)
+func main() {
+    cfg := parseFlags()
+    logger := log.New(...)
+    if err := run(cfg, logger); err != nil {
+        logger.Fatalf("Error: %v", err)
+    }
+}
+
+func parseFlags() *Config { ... }
+func run(cfg *Config, logger *log.Logger) error { ... }
+```
+
+### Makefile の検証
+
+**Makefile構文チェック**:
+```bash
+make -n <target>  # ドライラン
+make help         # 全ターゲット表示
+```
+
+**注意**: Makefileでは `$(shell ...)` や変数展開のエスケープに注意。
+バージョン情報を埋め込む例:
+```makefile
+VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+LDFLAGS := -X main.version=$(VERSION)
+```
