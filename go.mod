@@ -2,7 +2,7 @@ module github.com/3-shake/alert-menta
 
 go 1.23.0
 
-toolchain go1.24.12
+toolchain go1.25.6
 
 require (
 	cloud.google.com/go/vertexai v0.13.2
