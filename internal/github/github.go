@@ -49,6 +49,20 @@ func (gh *GitHubIssue) GetTitle() (*string, error) {
 	return issue.Title, err
 }
 
+func (gh *GitHubIssue) GetLabels() ([]string, error) {
+	issue, err := gh.GetIssue()
+	if err != nil {
+		return nil, err
+	}
+	var labels []string
+	for _, label := range issue.Labels {
+		if label.Name != nil {
+			labels = append(labels, *label.Name)
+		}
+	}
+	return labels, nil
+}
+
 func (gh *GitHubIssue) GetComments() ([]*github.IssueComment, error) {
 	// Options
 	opt := &github.IssueListCommentsOptions{Direction: "asc", Sort: "created"}

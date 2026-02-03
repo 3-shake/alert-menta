@@ -120,6 +120,47 @@ The built-in `postmortem` command generates comprehensive postmortem documentati
     require_intent: false
 ```
 
+### First Response Guide
+alert-menta can automatically post an incident response guide when Issues with specific labels are created. This helps on-call responders quickly understand what steps to take.
+
+#### Configuration
+Add the following to your `.alert-menta.user.yaml`:
+```yaml
+first_response:
+  enabled: true
+  trigger_labels:
+    - incident
+    - alert
+  guides:
+    - severity: high
+      auto_notify:
+        - "@sre-team"
+    - severity: medium
+      auto_notify: []
+    - severity: low
+      auto_notify: []
+  escalation:
+    timeout_minutes: 15
+    notify_target: "@oncall"
+```
+
+#### Severity Detection
+Severity is automatically determined from:
+1. **Labels**: `severity:high`, `sev1`, `critical`, `p0`, etc.
+2. **Issue body**: Keywords like "production", "outage", "service down"
+
+#### GitHub Actions Setup
+See `.github/workflows/first-response.yaml.example` for a workflow template.
+
+#### Local Testing
+```bash
+go run ./cmd/firstresponse/main.go \
+  -owner <owner> -repo <repo> -issue <number> \
+  -github-token $GITHUB_TOKEN \
+  -config .alert-menta.user.yaml \
+  -dry-run  # Preview without posting
+```
+
 ### Provider Fallback
 alert-menta supports automatic failover between AI providers. If the primary provider fails (timeout, rate limit, server error), it automatically tries backup providers.
 

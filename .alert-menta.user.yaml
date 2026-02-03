@@ -309,6 +309,28 @@ ai:
           The following is the GitHub Issue and comments. Generate the incident timeline:
         require_intent: false
 
+# First Response Guide settings (#62)
+# Automatically posts an incident response guide when issues with specific labels are created
+first_response:
+  enabled: false  # Set to true to enable automatic first response guides
+  trigger_labels:  # Issue labels that trigger the guide
+    - incident
+    - alert
+    - outage
+  slack_channel: "#incidents"  # Optional: Slack channel for notifications
+  guides:  # Severity-specific guide configurations
+    - severity: high
+      auto_notify:
+        - "@sre-team"
+      # template: ".alert-menta/guides/high-severity.md"  # Optional: custom template
+    - severity: medium
+      auto_notify: []
+    - severity: low
+      auto_notify: []
+  escalation:
+    timeout_minutes: 15  # Escalation timeout for high severity
+    notify_target: "@oncall"
+
 # Slack notification settings
 notifications:
   slack:
