@@ -13,6 +13,7 @@ You can receive support for failure handling that is completed within GitHub.
   - `ask` command for asking additional questions
   - `postmortem` command to generate postmortem documentation from incident timeline
   - `runbook` command to generate step-by-step incident response procedures
+  - `timeline` command to generate chronological timeline of incident activities
 - Mechanism to improve response accuracy using [RAG](https://cloud.google.com/use-cases/retrieval-augmented-generation?hl=en) (in development)
 - Selectable LLM models (OpenAI, VertexAI)
 - Extensible prompt text
