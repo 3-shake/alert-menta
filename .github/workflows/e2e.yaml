@@ -9,6 +9,7 @@ on:
     branches:
       - develop
       - main
+  workflow_dispatch:  # Allow manual triggering
 
 jobs:
   e2e:
@@ -20,6 +21,17 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: "1.23"
+
+      - name: Check secrets configuration
+        run: |
+          if [ -z "${{ secrets.GH_TOKEN }}" ]; then
+            echo "::warning::GH_TOKEN secret is not configured. E2E tests will be skipped."
+            echo "Please add GH_TOKEN to repository secrets (Settings > Secrets > Actions)"
+          fi
+          if [ -z "${{ secrets.OPENAI_API_KEY }}" ]; then
+            echo "::warning::OPENAI_API_KEY secret is not configured. E2E tests will be skipped."
+            echo "Please add OPENAI_API_KEY to repository secrets (Settings > Secrets > Actions)"
+          fi
 
       - name: Run E2E tests
         env:

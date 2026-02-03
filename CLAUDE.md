@@ -231,3 +231,36 @@ func skipIfMissingEnv(t *testing.T) {
 - ローカル開発では常に環境変数が設定されているとは限らない
 - CIではGitHub Secretsから環境変数が供給される
 - スキップにより `go test` が失敗しない
+
+### CI E2Eテストがスキップされる問題
+
+**症状**: CIでE2Eテストが全てSKIPされる（テストは"pass"だがスキップ）
+
+**診断方法**: GitHub Actions のログを確認
+```
+=== RUN   TestE2E_DescribeCommand
+    e2e_test.go:32: GITHUB_TOKEN not set
+--- SKIP: TestE2E_DescribeCommand (0.00s)
+```
+
+**原因**: リポジトリのSecretsが未設定、または名前が異なる
+
+**解決方法**:
+1. GitHub リポジトリ → Settings → Secrets and variables → Actions
+2. 以下のSecretsを追加:
+   - `GH_TOKEN`: GitHub Personal Access Token (repo権限)
+   - `OPENAI_API_KEY`: OpenAI APIキー
+3. ワークフローファイル（`.github/workflows/e2e.yaml`）が正しいSecret名を参照しているか確認
+
+**注意**:
+- PRがforkからの場合、Secretsは利用不可（セキュリティ仕様）
+- 同一リポジトリのブランチからのPRではSecretsが利用可能
+- `workflow_dispatch` を追加すると手動でE2Eテストを実行可能
+
+### PRマージ後にE2Eテストを確認する
+
+**重要**: PRをマージした後、必ずE2Eテストの結果を確認する
+
+1. マージ後のCIログを確認
+2. テストが"SKIP"ではなく"PASS"であることを確認
+3. スキップされている場合はSecrets設定を確認
