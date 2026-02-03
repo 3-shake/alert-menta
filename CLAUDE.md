@@ -43,6 +43,9 @@ internal/
     vertexai.go      # VertexAI/Gemini implementation
   github/
     github.go        # GitHubIssue struct for Issue/comment operations
+  slack/
+    slack.go         # Slack webhook client for notifications
+    slack_test.go    # Unit tests with mock HTTP server
   utils/
     utils.go         # Config loading (viper), image download/base64 conversion
 ```
@@ -166,3 +169,65 @@ version: "2"
 ```
 
 **注意**: v2ではフォーマッタが `formatters:` セクションに移動。`gofmt`, `gofumpt`, `goimports` は `linters:` ではなく `formatters:` に記載。
+
+### 設定構造体の追加パターン
+
+**症状**: 新しい設定項目を追加してもviperが読み込まない
+
+**原因**: `mapstructure` タグの不足、または構造体のフィールド名とYAMLキーの不一致
+
+**解決方法**:
+```go
+// YAMLのsnake_caseキーには mapstructure タグが必要
+type SlackConfig struct {
+    Enabled    bool     `yaml:"enabled"`
+    WebhookURL string   `yaml:"webhook_url" mapstructure:"webhook_url"`  // snake_case
+    Channel    string   `yaml:"channel"`
+    NotifyOn   []string `yaml:"notify_on" mapstructure:"notify_on"`      // snake_case
+}
+```
+
+**注意**: viperはデフォルトで `mapstructure` を使用。YAMLキーがsnake_caseの場合、Goのフィールド名がCamelCaseなら `mapstructure` タグが必要。
+
+### 外部サービス連携のテストパターン
+
+**パターン**: Slack webhook等の外部サービス連携は httptest.NewServer でモック
+
+```go
+func TestSendCommandResponse(t *testing.T) {
+    var receivedMessage Message
+
+    server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        // リクエストボディを検証
+        if err := json.NewDecoder(r.Body).Decode(&receivedMessage); err != nil {
+            t.Errorf("failed to decode: %v", err)
+        }
+        w.WriteHeader(http.StatusOK)
+    }))
+    defer server.Close()
+
+    client := NewClient(server.URL, "#test-channel")
+    err := client.SendCommandResponse("Test", "http://test", "describe", "response")
+    // ...
+}
+```
+
+**利点**: 実際のAPIを呼び出さずにユニットテストが可能、CI/CDで安全に実行可能
+
+### E2Eテストと環境変数
+
+**設計**: E2Eテストは環境変数チェックでスキップ可能にする
+
+```go
+func skipIfMissingEnv(t *testing.T) {
+    t.Helper()
+    if os.Getenv("GITHUB_TOKEN") == "" {
+        t.Skip("GITHUB_TOKEN not set")
+    }
+}
+```
+
+**理由**:
+- ローカル開発では常に環境変数が設定されているとは限らない
+- CIではGitHub Secretsから環境変数が供給される
+- スキップにより `go test` が失敗しない
