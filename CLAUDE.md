@@ -35,14 +35,19 @@ go run ./cmd/main.go -repo <repository> -owner <owner> -issue <issue-number> \
 ## Architecture
 
 ```
-cmd/main.go          # Entry point, CLI flag parsing, orchestrates the flow
+cmd/
+  main.go            # Entry point, CLI flag parsing, orchestrates the flow
+  mcp/main.go        # MCP server entry point for Claude Code integration
 internal/
   ai/
     ai.go            # Ai interface definition (GetResponse)
     openai.go        # OpenAI implementation (uses Azure SDK)
+    anthropic.go     # Anthropic/Claude implementation
     vertexai.go      # VertexAI/Gemini implementation
   github/
     github.go        # GitHubIssue struct for Issue/comment operations
+  mcp/
+    server.go        # MCP server for Claude Code integration
   slack/
     slack.go         # Slack webhook client for notifications
     slack_test.go    # Unit tests with mock HTTP server
@@ -62,6 +67,39 @@ internal/
 ## Branch Strategy
 
 PRs should target the `develop` branch, not `main`. See wiki for details.
+
+## MCP Server (Claude Code Integration)
+
+alert-menta provides an MCP server for Claude Code integration.
+
+### Running the MCP Server
+```bash
+go run ./cmd/mcp/main.go -config .alert-menta.user.yaml
+```
+
+### Available Tools
+- `get_incident`: Get incident information from GitHub Issue
+- `analyze_incident`: Run analysis commands (describe, suggest, analysis, postmortem, runbook, timeline)
+- `post_comment`: Post a comment to GitHub Issue
+- `list_commands`: List all available commands
+
+### Claude Code Settings
+Add to `~/.claude/settings.json`:
+```json
+{
+  "mcpServers": {
+    "alert-menta": {
+      "command": "go",
+      "args": ["run", "./cmd/mcp/main.go", "-config", ".alert-menta.user.yaml"],
+      "cwd": "/path/to/alert-menta",
+      "env": {
+        "GITHUB_TOKEN": "...",
+        "OPENAI_API_KEY": "..."
+      }
+    }
+  }
+}
+```
 
 ## Development Notes
 

@@ -227,6 +227,40 @@ In an environment where Golang can be executed, clone the repository and run it 
 ```
 go run ./cmd/main.go -repo <repository> -owner <owner> -issue <issue-number> -github-token $GITHUB_TOKEN -api-key $OPENAI_API_KEY -command <describe, etc.> -config <User_defined_config_file>
 ```
+## Claude Code Integration (MCP)
+alert-menta provides an MCP (Model Context Protocol) server that enables Claude Code to interact with GitHub Issues directly.
+
+### Setup
+Add to your Claude Code settings (`~/.claude/settings.json`):
+```json
+{
+  "mcpServers": {
+    "alert-menta": {
+      "command": "go",
+      "args": ["run", "./cmd/mcp/main.go", "-config", ".alert-menta.user.yaml"],
+      "cwd": "/path/to/alert-menta",
+      "env": {
+        "GITHUB_TOKEN": "your-github-token",
+        "OPENAI_API_KEY": "your-openai-api-key"
+      }
+    }
+  }
+}
+```
+
+### Available Tools
+- `get_incident`: Get incident information from a GitHub Issue
+- `analyze_incident`: Run analysis commands (describe, suggest, analysis, postmortem, runbook, timeline)
+- `post_comment`: Post a comment to a GitHub Issue
+- `list_commands`: List all available commands
+
+### Usage Example
+```
+> Get the details of Issue #123 in owner/repo
+> Analyze Issue #123 using the analysis command
+> Post a summary comment to Issue #123
+```
+
 ## Contribution
 We welcome you.
 Please submit pull requests to the develop branch. See [Branch strategy](https://github.com/3-shake/alert-menta/wiki/Branch-strategy) for more information.
