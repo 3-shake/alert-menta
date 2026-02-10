@@ -8,7 +8,7 @@ require (
 	cloud.google.com/go/vertexai v0.13.2
 	github.com/Azure/azure-sdk-for-go/sdk/ai/azopenai v0.7.1
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.17.0
-	github.com/anthropics/anthropic-sdk-go v1.19.0
+	github.com/anthropics/anthropic-sdk-go v1.22.1
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/mark3labs/mcp-go v0.43.2
 	github.com/spf13/viper v1.19.0
