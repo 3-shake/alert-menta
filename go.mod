@@ -1,8 +1,6 @@
 module github.com/3-shake/alert-menta
 
-go 1.24.0
-
-toolchain go1.24.12
+go 1.25.5
 
 require (
 	cloud.google.com/go/vertexai v0.13.2
@@ -10,7 +8,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.17.0
 	github.com/anthropics/anthropic-sdk-go v1.19.0
 	github.com/google/go-github v17.0.0+incompatible
-	github.com/mark3labs/mcp-go v0.43.2
+	github.com/mark3labs/mcp-go v0.57.0
 	github.com/spf13/viper v1.19.0
 	golang.org/x/oauth2 v0.34.0
 )
@@ -33,6 +31,7 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
+	github.com/google/jsonschema-go v0.4.2 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
@@ -48,6 +47,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	github.com/securego/gosec/v2 v2.22.11 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
