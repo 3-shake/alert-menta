@@ -1,8 +1,6 @@
 module github.com/3-shake/alert-menta
 
-go 1.24.0
-
-toolchain go1.24.12
+go 1.25.0
 
 require (
 	cloud.google.com/go/vertexai v0.13.2
@@ -12,7 +10,7 @@ require (
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/mark3labs/mcp-go v0.43.2
 	github.com/spf13/viper v1.19.0
-	golang.org/x/oauth2 v0.34.0
+	golang.org/x/oauth2 v0.36.0
 )
 
 require (
