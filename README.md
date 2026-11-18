@@ -119,7 +119,7 @@ jobs:
       contents: read
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download and Install alert-menta
         run: |
@@ -129,38 +129,50 @@ jobs:
           | jq '.assets[] | select(.name | contains("Linux_x86")) | .id')"
           tar -zxvf alert-menta_Linux_x86_64.tar.gz
 
-      - run: echo "REPOSITORY_NAME=${GITHUB_REPOSITORY#${GITHUB_REPOSITORY_OWNER}/}" >> $GITHUB_ENV
+      - run: echo "REPOSITORY_NAME=${GITHUB_REPOSITORY#"${GITHUB_REPOSITORY_OWNER}"/}" >> "$GITHUB_ENV"
 
       - name: Get user defined config file
         id: user_config
         if: hashFiles('.alert-menta.user.yaml') != ''
         run: |
-          curl -H "Authorization: token ${{ secrets.GH_TOKEN }}" -L -o .alert-menta.user.yaml "https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ env.REPOSITORY_NAME }}/main/.alert-menta.user.yaml" && echo "CONFIG_FILE=./.alert-menta.user.yaml" >> $GITHUB_ENV
+          curl -H "Authorization: token ${{ secrets.GH_TOKEN }}" -L -o .alert-menta.user.yaml "https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ env.REPOSITORY_NAME }}/main/.alert-menta.user.yaml" && echo "CONFIG_FILE=./.alert-menta.user.yaml" >> "$GITHUB_ENV"
 
       - name: Extract command and intent
         id: extract_command
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
         run: |
-          COMMENT_BODY="${{ github.event.comment.body }}"
-          COMMAND=$(echo "$COMMENT_BODY" | sed -E 's|^/([^ ]*).*|\1|')
-          echo "COMMAND=$COMMAND" >> $GITHUB_ENV
-          
-          if [[ "$COMMENT_BODY" == "/$COMMAND "* ]]; then
-            INTENT=$(echo "$COMMENT_BODY" | sed -E "s|^/$COMMAND ||")
-            echo "INTENT=$INTENT" >> $GITHUB_ENV
+          COMMAND=$(printf '%s' "$COMMENT_BODY" | sed -nE '1s|^/([^[:space:]]+).*|\1|p')
+          if [ -z "$COMMAND" ]; then
+            echo "Could not parse command."
+            exit 1
           fi
-          
-          COMMANDS_CHECK=$(yq e '.ai.commands[] | keys' .alert-menta.user.yaml | grep -c "$COMMAND" || echo "0")
-          if [ "$COMMANDS_CHECK" -eq "0" ]; then
+          if ! yq e '.ai.commands[] | keys | .[]' .alert-menta.user.yaml | grep -Fxq -- "$COMMAND"; then
             echo "Invalid command: $COMMAND. Command not found in configuration."
             exit 1
           fi
+          echo "COMMAND=$COMMAND" >> "$GITHUB_ENV"
+
+          if [[ "$COMMENT_BODY" == "/$COMMAND "* ]]; then
+            INTENT=${COMMENT_BODY#/"$COMMAND" }
+            EOF_MARKER="EOF_$(openssl rand -hex 16)"
+            {
+              echo "INTENT<<$EOF_MARKER"
+              printf '%s\n' "$INTENT"
+              echo "$EOF_MARKER"
+            } >> "$GITHUB_ENV"
+          fi
 
       - name: Add Comment
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
         run: |
-          if [ -n "$INTENT" ]; then
-            ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -github-token ${{ secrets.GH_TOKEN }} -api-key ${{ secrets.OPENAI_API_KEY }} -command $COMMAND -config $CONFIG_FILE -intent "$INTENT"
+          if [ -n "${INTENT:-}" ]; then
+            ./alert-menta -owner "$GITHUB_REPOSITORY_OWNER" -issue "$ISSUE_NUMBER" -repo "$REPOSITORY_NAME" -github-token "$GH_TOKEN" -api-key "$OPENAI_API_KEY" -command "$COMMAND" -config "${CONFIG_FILE:-}" -intent "$INTENT"
           else
-            ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -github-token ${{ secrets.GH_TOKEN }} -api-key ${{ secrets.OPENAI_API_KEY }} -command $COMMAND -config $CONFIG_FILE
+            ./alert-menta -owner "$GITHUB_REPOSITORY_OWNER" -issue "$ISSUE_NUMBER" -repo "$REPOSITORY_NAME" -github-token "$GH_TOKEN" -api-key "$OPENAI_API_KEY" -command "$COMMAND" -config "${CONFIG_FILE:-}"
           fi
 ```
 #### If using Vertex AI
