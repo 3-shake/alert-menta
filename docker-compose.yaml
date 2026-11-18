@@ -1,0 +1,74 @@
+services:
+  # Main CLI - run with: docker compose run --rm alert-menta
+  alert-menta:
+    build:
+      context: .
+      args:
+        VERSION: ${VERSION:-dev}
+        COMMIT: ${COMMIT:-unknown}
+        DATE: ${DATE:-unknown}
+    image: alert-menta:${VERSION:-latest}
+    environment:
+      - GITHUB_TOKEN
+      - OPENAI_API_KEY
+      - ANTHROPIC_API_KEY
+    volumes:
+      - ./.alert-menta.user.yaml:/app/config.yaml:ro
+    entrypoint: ["alert-menta"]
+    command: ["-config", "/app/config.yaml", "-help"]
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+
+  # MCP Server - run with: docker compose up mcp
+  mcp:
+    build:
+      context: .
+    image: alert-menta:${VERSION:-latest}
+    environment:
+      - GITHUB_TOKEN
+      - OPENAI_API_KEY
+      - ANTHROPIC_API_KEY
+    volumes:
+      - ./.alert-menta.user.yaml:/app/config.yaml:ro
+    entrypoint: ["alert-menta-mcp"]
+    command: ["-config", "/app/config.yaml"]
+    stdin_open: true
+    tty: true
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+
+  # Triage - run with: docker compose run --rm triage
+  triage:
+    build:
+      context: .
+    image: alert-menta:${VERSION:-latest}
+    environment:
+      - GITHUB_TOKEN
+      - OPENAI_API_KEY
+      - ANTHROPIC_API_KEY
+    volumes:
+      - ./.alert-menta.user.yaml:/app/config.yaml:ro
+    entrypoint: ["alert-menta-triage"]
+    command: ["-config", "/app/config.yaml", "-help"]
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+
+  # First Response - run with: docker compose run --rm firstresponse
+  firstresponse:
+    build:
+      context: .
+    image: alert-menta:${VERSION:-latest}
+    environment:
+      - GITHUB_TOKEN
+      - OPENAI_API_KEY
+      - ANTHROPIC_API_KEY
+    volumes:
+      - ./.alert-menta.user.yaml:/app/config.yaml:ro
+    entrypoint: ["alert-menta-firstresponse"]
+    command: ["-config", "/app/config.yaml", "-help"]
+    read_only: true
+    security_opt:
+      - no-new-privileges:true

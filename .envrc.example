@@ -1,0 +1,13 @@
+# Copy this file to .envrc and fill in your keys
+# Then run: direnv allow
+
+export GITHUB_TOKEN=$(gh auth token)
+export OPENAI_API_KEY="your-openai-api-key-here"
+
+# Optional: For Anthropic provider
+# export ANTHROPIC_API_KEY="your-anthropic-api-key-here"
+
+# E2E test configuration (optional)
+# export E2E_TEST_OWNER="nwiizo"
+# export E2E_TEST_REPO="alert-menta-test"
+# export E2E_TEST_ISSUE="1"

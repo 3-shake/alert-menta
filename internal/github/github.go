@@ -49,6 +49,20 @@ func (gh *GitHubIssue) GetTitle() (*string, error) {
 	return issue.Title, err
 }
 
+func (gh *GitHubIssue) GetLabels() ([]string, error) {
+	issue, err := gh.GetIssue()
+	if err != nil {
+		return nil, err
+	}
+	var labels []string
+	for _, label := range issue.Labels {
+		if label.Name != nil {
+			labels = append(labels, *label.Name)
+		}
+	}
+	return labels, nil
+}
+
 func (gh *GitHubIssue) GetComments() ([]*github.IssueComment, error) {
 	// Options
 	opt := &github.IssueListCommentsOptions{Direction: "asc", Sort: "created"}
@@ -66,6 +80,18 @@ func (gh *GitHubIssue) PostComment(commentBody string) error {
 		return fmt.Errorf("error creating comment: %w", err)
 	}
 	gh.logger.Printf("Comment created successfully on Issue %d", gh.issueNumber)
+	return nil
+}
+
+func (gh *GitHubIssue) AddLabels(labels []string) error {
+	if len(labels) == 0 {
+		return nil
+	}
+	_, _, err := gh.client.Issues.AddLabelsToIssue(gh.ctx, gh.owner, gh.repo, gh.issueNumber, labels)
+	if err != nil {
+		return fmt.Errorf("error adding labels: %w", err)
+	}
+	gh.logger.Printf("Labels %v added successfully to Issue %d", labels, gh.issueNumber)
 	return nil
 }
 

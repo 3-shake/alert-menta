@@ -1,0 +1,29 @@
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      golang-deps:
+        patterns:
+          - "golang.org/*"
+        update-types:
+          - "minor"
+          - "patch"
+      google-deps:
+        patterns:
+          - "google.golang.org/*"
+          - "cloud.google.com/*"
+          - "github.com/google/*"
+          - "github.com/googleapis/*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5

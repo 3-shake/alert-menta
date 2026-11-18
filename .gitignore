@@ -36,3 +36,4 @@ coverage.html
 
 # OS
 .DS_Store
+.envrc
